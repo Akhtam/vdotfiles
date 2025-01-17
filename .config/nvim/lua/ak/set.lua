@@ -1,16 +1,16 @@
 local opt = vim.opt
 
-opt.clipboard = 'unnamedplus' -- use system keyboard for yank
+vim.schedule(function()
+	opt.clipboard = "unnamedplus" -- use system keyboard for yank
+end)
 
-opt.nu = true                 -- set line numbers -- set line numbers
---opt.relativenumber = true
+opt.nu = true -- set line numbers
+opt.relativenumber = true
 
--- set tab size to 2 spaces
-opt.tabstop = 2
-opt.softtabstop = 2
-opt.shiftwidth = 2
-opt.expandtab = true
-opt.smartindent = true
+opt.showmode = false
+
+-- Enable break indent
+vim.opt.breakindent = true
 
 opt.wrap = false -- disable line wrapping
 
@@ -27,6 +27,13 @@ opt.signcolumn = "yes" -- show sign column so that text doesn't shift
 -- split windows
 opt.splitright = true -- split vertical window to the right
 opt.splitbelow = true -- split horizontal window to the bottom
+
+-- set tab size to 2 spaces
+opt.tabstop = 2
+opt.softtabstop = 2
+opt.shiftwidth = 2
+opt.expandtab = true
+opt.smartindent = true
 
 -- turn off swapfile
 opt.swapfile = false
