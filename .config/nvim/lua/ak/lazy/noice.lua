@@ -38,7 +38,7 @@ return {
 		end, { desc = "Show Noice errors" })
 
 		vim.keymap.set("n", "<leader>nh", function()
-			noice.cmd("history")
+			noice.cmd("pick")
 		end, { desc = "Show Noice history" })
 	end,
 }
