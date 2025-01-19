@@ -18,7 +18,7 @@ return {
 		-- configure lualine with modified theme
 		lualine.setup({
 			options = {
-				theme = "auto",
+				theme = "tokyonight",
 			},
 			sections = {
         lualine_b = { {'diff', source = diff_source}, },
