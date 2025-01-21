@@ -34,12 +34,12 @@ return {
         end,
       },
       mapping = cmp.mapping.preset.insert({
-        ["<C-k>"] = cmp.mapping.select_prev_item(), -- previous suggestion
-        ["<C-j>"] = cmp.mapping.select_next_item(), -- next suggestion
-        ["<C-b>"] = cmp.mapping.scroll_docs(-4),
-        ["<C-f>"] = cmp.mapping.scroll_docs(4),
-        ["<C-Space>"] = cmp.mapping.complete(), -- show completion suggestions
-        ["<C-e>"] = cmp.mapping.abort(), -- close completion window
+        ["<A-k>"] = cmp.mapping.select_prev_item(), -- previous suggestion
+        ["<A-j>"] = cmp.mapping.select_next_item(), -- next suggestion
+        ["<A-b>"] = cmp.mapping.scroll_docs(-4),
+        ["<A-f>"] = cmp.mapping.scroll_docs(4),
+        ["<A-Space>"] = cmp.mapping.complete(), -- show completion suggestions
+        ["<A-e>"] = cmp.mapping.abort(), -- close completion window
         ["<CR>"] = cmp.mapping.confirm({ select = false }),
       }),
       -- sources for autocompletion
