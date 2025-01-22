@@ -9,19 +9,25 @@ return {
 		local themes = require("telescope.themes")
 		local actions = require("telescope.actions")
 
+		local shared_mapping = function()
+			return {
+				["<C-h>"] = actions.file_split, -- Open file in horizontal split
+				["<A-k>"] = actions.move_selection_previous,
+				["<A-j>"] = actions.move_selection_next,
+				["<A-f>"] = actions.preview_scrolling_down,
+				["<A-b>"] = actions.preview_scrolling_up,
+			}
+		end
+
 		-- 1. Use ivy theme for all pickers by default
 		telescope.setup({
 			defaults = themes.get_ivy({
 				path_display = { "smart" },
 				mappings = {
 					-- Insert mode
-					i = {
-						["<C-h>"] = actions.file_split, -- Open file in horizontal split
-					},
+					i = shared_mapping(),
 					-- Normal mode
-					n = {
-						["<C-h>"] = actions.file_split,
-					},
+					n = shared_mapping(),
 				},
 			}),
 
