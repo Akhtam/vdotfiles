@@ -169,6 +169,7 @@ alias bx="bundle exec"
 alias ls="lsd"
 alias lt="lsd --tree"
 alias rgf="fzf_rg"
+alias vm="nvim"
 
 BAT_THEME="tokyonight_night"
 # Set up fzf key bindings and fuzzy completion

@@ -38,6 +38,7 @@ opt.smartindent = true
 -- turn off swapfile
 opt.swapfile = false
 
+vim.o.sessionoptions="blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions"
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
 --  See `:help vim.highlight.on_yank()`
