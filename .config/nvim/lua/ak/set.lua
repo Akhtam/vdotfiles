@@ -39,6 +39,7 @@ opt.smartindent = true
 opt.swapfile = false
 
 vim.o.sessionoptions="blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions"
+vim.g.copilot_enabled = 0 -- disable copilot by default
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
 --  See `:help vim.highlight.on_yank()`
