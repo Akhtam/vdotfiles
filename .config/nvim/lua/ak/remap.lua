@@ -23,3 +23,6 @@ keymap.set("i", "<A-h>", "<Left>",  { noremap = true })
 keymap.set("i", "<A-j>", "<Down>",  { noremap = true })
 keymap.set("i", "<A-k>", "<Up>",    { noremap = true })
 keymap.set("i", "<A-l>", "<Right>", { noremap = true })
+
+keymap.set("v", "J", ":m '>+1<CR>gv=gv")
+keymap.set("v", "K", ":m '<-2<CR>gv=gv")

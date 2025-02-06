@@ -38,6 +38,9 @@ opt.smartindent = true
 -- turn off swapfile
 opt.swapfile = false
 
+-- Scroll
+opt.scrolloff = 4
+
 vim.o.sessionoptions="blank,buffers,curdir,folds,help,tabpages,winsize,winpos,terminal,localoptions"
 vim.g.copilot_enabled = 0 -- disable copilot by default
 -- Highlight when yanking (copying) text
