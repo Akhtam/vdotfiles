@@ -68,7 +68,7 @@ return {
 
 		lspconfig.ruby_lsp.setup({
 			capabilities = capabilities,
-			cmd = { vim.fn.expand("~/.rbenv/shims/ruby-lsp") }, -- correct Ruby LSP server with a custom binary
+			cmd = { vim.fn.expand("~/.asdf/shims/ruby-lsp") }, -- correct Ruby LSP server with a custom binary
 		})
 
 		mason_lspconfig.setup_handlers({

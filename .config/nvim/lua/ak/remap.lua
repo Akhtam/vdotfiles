@@ -19,7 +19,7 @@ keymap.set("n", "<leader>tp", "<cmd>tabp<CR>", { desc = "Go to previous tab" }) 
 keymap.set("n", "<leader>tf", "<cmd>tabnew %<CR>", { desc = "Open current buffer in new tab" }) --  move current buffer to new tab
 keymap.set("n", "<leader>nr", ":set relativenumber!<CR>", { desc = "Toggle relative number" })
 
-keymap.set("i", "<C-h>", "<Left>",  { noremap = true })
-keymap.set("i", "<C-j>", "<Down>",  { noremap = true })
-keymap.set("i", "<C-k>", "<Up>",    { noremap = true })
-keymap.set("i", "<C-l>", "<Right>", { noremap = true })
+keymap.set("i", "<A-h>", "<Left>",  { noremap = true })
+keymap.set("i", "<A-j>", "<Down>",  { noremap = true })
+keymap.set("i", "<A-k>", "<Up>",    { noremap = true })
+keymap.set("i", "<A-l>", "<Right>", { noremap = true })
