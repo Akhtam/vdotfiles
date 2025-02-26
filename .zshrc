@@ -165,7 +165,8 @@ alias ls="lsd"
 alias lt="lsd --tree"
 alias rgf="fzf_rg"
 alias vm="nvim"
-
+alias py="python3"
+alias pn="pnpm"
 BAT_THEME="tokyonight_night"
 # Set up fzf key bindings and fuzzy completion
 source <(fzf --zsh)

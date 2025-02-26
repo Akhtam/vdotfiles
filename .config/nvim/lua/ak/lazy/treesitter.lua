@@ -15,7 +15,7 @@ return {
 			},
 
 			-- enable indentation
-			indent = { enable = true },
+			indent = { enable = true, disable = { "ruby" } },
 
 			-- ensure these language parsers are installed
 			ensure_installed = {

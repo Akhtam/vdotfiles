@@ -42,19 +42,13 @@ return {
 				["<A-e>"] = cmp.mapping.abort(), -- close completion window
 				["<CR>"] = cmp.mapping.confirm({ select = false }),
 			}),
+
 			sources = cmp.config.sources({
-				{ name = "luasnip", priority = 1000 }, -- Snippets first
-				{ name = "nvim_lsp", priority = 750 }, -- LSP second
-				{ name = "buffer", priority = 500 }, -- Buffer text third
-				{ name = "path", priority = 250 }, -- File paths last
+				{ name = "luasnip", priority = 10 },
+				{ name = "nvim_lsp", priority = 5 },
+				{ name = "buffer", priority = 3 },
+				{ name = "path", priority = 1 },
 			}),
-			-- sources for autocompletion
-			-- sources = cmp.config.sources({
-			-- 	{ name = "luasnip" }, -- snippets
-			-- 	{ name = "nvim_lsp" },
-			-- 	{ name = "buffer" }, -- text within current buffer
-			-- 	{ name = "path" }, -- file system paths
-			-- }),
 
 			-- configure lspkind for vs-code like pictograms in completion menu
 			formatting = {
