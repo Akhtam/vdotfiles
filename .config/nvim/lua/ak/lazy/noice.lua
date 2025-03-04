@@ -56,6 +56,9 @@ return {
 						winhighlight = { Normal = "Normal", FloatBorder = "DiagnosticInfo" },
 					},
 				},
+				mini = {
+					timeout = 4000,
+				},
 			},
 		})
 
