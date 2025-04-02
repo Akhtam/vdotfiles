@@ -20,8 +20,17 @@ return {
 				theme = "tokyonight",
 			},
 			sections = {
-				lualine_c = { { "filename", path = 1 } },
-				lualine_b = { { "diff", source = diff_source } },
+				lualine_b = { { "filename", path = 1 } },
+				lualine_c = { { "diff", source = diff_source } },
+				lualine_z = {
+					{
+						function()
+							local status = vim.fn["copilot#Enabled"]()
+							return status == 1 and " " or " "
+						end,
+						color = { fg = "#2E3440" }, -- Green for enabled
+					},
+				},
 				lualine_x = {
 					{
 						lazy_status.updates,
@@ -43,7 +52,7 @@ return {
 				},
 			},
 			inactive_sections = {
-				lualine_c = { { "filename", path = 1 } },
+				lualine_b = { { "filename", path = 1 } },
 			},
 		})
 	end,

@@ -34,6 +34,7 @@ opt.softtabstop = 2
 opt.shiftwidth = 2
 opt.expandtab = true
 opt.smartindent = true
+opt.autoindent = true
 
 -- turn off swapfile
 opt.swapfile = false
