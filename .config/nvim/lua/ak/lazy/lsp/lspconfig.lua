@@ -58,6 +58,9 @@ return {
 		-- used to enable autocompletion (assign to every lsp server config)
 		local capabilities = cmp_nvim_lsp.default_capabilities()
 		vim.diagnostic.config({
+			virtual_text = {
+				spacing = 2, -- Adjust spacing between text and diagnostic
+			},
 			signs = {
 				text = {
 					[vim.diagnostic.severity.ERROR] = " ",
