@@ -28,6 +28,7 @@ return {
 			ensure_installed = {
 				-- "sorbet",
 				"ts_ls",
+				"prismals",
 				"html",
 				"cssls",
 				"tailwindcss",
