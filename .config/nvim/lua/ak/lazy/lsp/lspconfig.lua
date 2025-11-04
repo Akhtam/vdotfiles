@@ -7,9 +7,6 @@ return {
 		{ "folke/lazydev.nvim", opts = {} },
 	},
 	config = function()
-		-- import lspconfig plugin
-		local lspconfig = require("lspconfig")
-
 		-- import cmp-nvim-lsp plugin
 		local cmp_nvim_lsp = require("cmp_nvim_lsp")
 
@@ -74,10 +71,11 @@ return {
 			},
 		})
 
-		lspconfig.ruby_lsp.setup({
+		vim.lsp.config("ruby_lsp", {
 			capabilities = capabilities,
 			cmd = { vim.fn.expand("~/.asdf/shims/ruby-lsp") }, -- correct Ruby LSP server with a custom binary
 		})
+		vim.lsp.enable("ruby_lsp")
 
 		vim.lsp.config("*", {
 			capabilities = capabilities,
