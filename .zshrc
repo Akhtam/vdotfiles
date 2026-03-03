@@ -166,7 +166,8 @@ alias lt="lsd --tree"
 alias rgf="fzf_rg"
 alias vm="nvim"
 alias py="python3"
-alias gi="gemini"
+alias oc="opencode"
+
 BAT_THEME="tokyonight_night"
 # Set up fzf key bindings and fuzzy completion
 source <(fzf --zsh)
@@ -175,3 +176,11 @@ fpath=(/Users/akhtamismatov/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
 # End of Docker CLI completions
+
+# pnpm
+export PNPM_HOME="/Users/akhtamismatov/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME:"*) ;;
+  *) export PATH="$PNPM_HOME:$PATH" ;;
+esac
+# pnpm end

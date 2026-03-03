@@ -19,10 +19,13 @@ keymap.set("n", "<leader>tp", "<cmd>tabp<CR>", { desc = "Go to previous tab" }) 
 keymap.set("n", "<leader>tf", "<cmd>tabnew %<CR>", { desc = "Open current buffer in new tab" }) --  move current buffer to new tab
 keymap.set("n", "<leader>nr", ":set relativenumber!<CR>", { desc = "Toggle relative number" })
 
-keymap.set("i", "<A-h>", "<Left>",  { noremap = true })
-keymap.set("i", "<A-j>", "<Down>",  { noremap = true })
-keymap.set("i", "<A-k>", "<Up>",    { noremap = true })
+keymap.set("i", "<A-h>", "<Left>", { noremap = true })
+keymap.set("i", "<A-j>", "<Down>", { noremap = true })
+keymap.set("i", "<A-k>", "<Up>", { noremap = true })
 keymap.set("i", "<A-l>", "<Right>", { noremap = true })
 
 keymap.set("v", "J", ":m '>+1<CR>gv=gv")
 keymap.set("v", "K", ":m '<-2<CR>gv=gv")
+
+-- Map 'K' to show hover information (documentation and function signature)
+keymap.set("n", "K", vim.lsp.buf.hover, { buffer = 0 })
