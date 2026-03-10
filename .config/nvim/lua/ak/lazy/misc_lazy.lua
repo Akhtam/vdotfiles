@@ -1,5 +1,5 @@
 return {
-	{ "nvim-tree/nvim-web-devicons", opts = {} },
+	-- { "nvim-tree/nvim-web-devicons", opts = {} },
 	{ "echasnovski/mini.icons", version = "*" },
 	{
 		"stevearc/dressing.nvim",
@@ -29,5 +29,9 @@ return {
 		config = true,
 		-- use opts = {} for passing setup options
 		-- this is equivalent to setup({}) function
+	},
+	{
+		"MeanderingProgrammer/render-markdown.nvim",
+		opts = {},
 	},
 }
