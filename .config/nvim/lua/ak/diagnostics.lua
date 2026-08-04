@@ -98,7 +98,13 @@ local map = vim.keymap.set
 
 -- Full diagnostic float for the current line, on demand. Useful when
 -- virtual_lines is toggled off, or to read a message without moving the cursor.
-map('n', '<leader>e', vim.diagnostic.open_float, { desc = 'Show line diagnostics' })
+--
+-- MOVED from <leader>e to <leader>de. nvim-tree owns the <leader>e namespace
+-- (<leader>ee, <leader>ef, <leader>ec, <leader>er), and a bare <leader>e
+-- alongside them would make every tree keystroke stall for 'timeoutlen'
+-- (300ms) while Neovim waits to see whether you meant the shorter mapping.
+-- Living under <leader>d groups it with the other diagnostic maps anyway.
+map('n', '<leader>de', vim.diagnostic.open_float, { desc = 'Show line diagnostics' })
 
 -- Send every diagnostic in the buffer to the location list. The quickfix maps
 -- in keymaps.lua (]q / [q) then walk them. `setloclist` is per-window, so this

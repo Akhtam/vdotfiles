@@ -104,7 +104,11 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- means `bg-slate-800` shows the colour beside it. Built into 0.12 — this
     -- used to require nvim-colorizer or tailwind-tools.
     if client:supports_method('textDocument/documentColor') then
-      vim.lsp.document_color.enable(true, buf)
+      -- Second arg is a FILTER TABLE, not a bufnr. All four of these
+      -- vim.lsp.*.enable() functions share the signature
+      -- (enable: boolean, filter: table) — passing a bare number raises
+      -- "filter: expected table, got number" from vim/lsp/_capability.lua.
+      vim.lsp.document_color.enable(true, { bufnr = buf })
     end
 
     -- ── Linked editing ──

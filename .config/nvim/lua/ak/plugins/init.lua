@@ -105,6 +105,14 @@ vim.pack.add({
   { src = gh('nvim-telescope/telescope.nvim') },
   { src = gh('nvim-telescope/telescope-fzf-native.nvim') }, -- built by the hook above
 
+  -- ─ File explorer ─
+  { src = gh('nvim-tree/nvim-tree.lua') },
+  -- Optional for nvim-tree, but you already have a Nerd Font 2.3.3 installed,
+  -- so the glyphs resolve. Ghostty falls back to it for the private-use-area
+  -- codepoints even though font-family is the unpatched "JetBrains Mono NL".
+  -- Without this plugin nvim-tree still works, just with no file icons.
+  { src = gh('nvim-tree/nvim-web-devicons') },
+
   -- ─ Completion ─
   -- PINNED TO 1.x DELIBERATELY. blink.cmp's README currently carries:
   -- "V2 is under active development with many breaking changes. Consider
@@ -183,8 +191,9 @@ vim.pack.add({
 -- colorscheme is applied before anything draws.
 require('ak.plugins.ui')
 -- TODO: uncomment each as it is written — they are being added one at a time.
--- require('ak.plugins.telescope')
--- require('ak.plugins.blink')
+require('ak.plugins.telescope')
+require('ak.plugins.nvim_tree')
+require('ak.plugins.blink')
 -- require('ak.plugins.conform')
 -- require('ak.plugins.lint')
 -- require('ak.plugins.gitsigns')
