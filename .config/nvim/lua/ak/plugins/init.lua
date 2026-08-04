@@ -94,6 +94,13 @@ vim.pack.add({
   -- ─ Keymap discovery ─
   { src = gh('folke/which-key.nvim') },
 
+  -- ─ Editing ─
+  -- Add/change/delete surrounding pairs. Pinned to 4.x: the range idiom below
+  -- is the one nvim-surround's own README recommends, and it documents
+  -- vim.pack installation directly — worth noting, since it means upstream
+  -- tests against this exact setup.
+  { src = gh('kylechui/nvim-surround'), version = vim.version.range('4.x') },
+
   -- ─ Treesitter ─
   -- version = 'main' is NOT redundant, and getting it wrong is a real hazard.
   -- This repo carries two live branches: 'main' is the 0.12-only rewrite, and
@@ -209,6 +216,7 @@ require('ak.plugins.lualine')
 require('ak.plugins.bufferline')
 require('ak.plugins.noice')
 require('ak.plugins.whichkey')
+require('ak.plugins.surround')
 -- TODO: uncomment each as it is written — they are being added one at a time.
 require('ak.plugins.telescope')
 require('ak.plugins.nvim_tree')
