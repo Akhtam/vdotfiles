@@ -29,3 +29,31 @@ keymap.set("v", "K", ":m '<-2<CR>gv=gv")
 
 -- Map 'K' to show hover information (documentation and function signature)
 keymap.set("n", "K", vim.lsp.buf.hover, { buffer = 0 })
+
+
+keymap.set("v", "<leader>ac", function()
+  -- yank selection to register
+  vim.cmd('noau normal! "vy"')
+  local selection = vim.fn.getreg("v")
+  local filename = vim.fn.expand("%:t")
+  local line_start = vim.fn.line("v")
+  local line_end = vim.fn.line(".")
+
+  -- ask for a prompt
+  local prompt = vim.fn.input("Ask Claude: ")
+  if prompt == "" then return end
+
+  -- build the message
+  local msg = string.format(
+    "[%s lines %d-%d]\n%s\n\n%s",
+    filename, line_start, line_end,
+    selection,
+    prompt
+  )
+
+  -- send to the right tmux pane (pane 1 = right)
+  vim.fn.system(string.format(
+    "tmux send-keys -t .+ %q Enter",
+    msg
+  ))
+end, { desc = "Ask Claude about selection" })

@@ -54,3 +54,10 @@ vim.api.nvim_create_autocmd("TextYankPost", {
 		vim.hl.on_yank()
 	end,
 })
+
+vim.api.nvim_create_autocmd("ColorScheme", {
+	callback = function()
+		vim.api.nvim_set_hl(0, "DiagnosticUnnecessary", { fg = "#9aa5ce", italic = true })
+	end,
+})
+vim.api.nvim_set_hl(0, "DiagnosticUnnecessary", { fg = "#9aa5ce", italic = true })

@@ -1,6 +1,6 @@
 return {
 	-- { "nvim-tree/nvim-web-devicons", opts = {} },
-	{ "echasnovski/mini.icons", version = "*" },
+	{ "nvim-mini/mini.icons", version = "*" },
 	{
 		"stevearc/dressing.nvim",
 		event = "VeryLazy",

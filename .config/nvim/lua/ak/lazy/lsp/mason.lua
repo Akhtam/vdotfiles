@@ -27,12 +27,13 @@ return {
 			-- list of servers for mason to install
 			ensure_installed = {
 				-- "sorbet",
-				"ts_ls",
+				"vtsls",
 				"html",
 				"cssls",
 				"tailwindcss",
 				"lua_ls",
 				"graphql",
+				"eslint",
 			},
 		})
 
@@ -40,8 +41,7 @@ return {
 			ensure_installed = {
 				"prettier", -- prettier formatter
 				"stylua", -- lua formatter
-				"black", -- python formatter
-				"eslint_d", -- js linter
+				-- "eslint_d", -- js linter
 			},
 		})
 	end,
