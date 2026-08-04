@@ -79,6 +79,21 @@ vim.pack.add({
   { src = gh('folke/tokyonight.nvim') },
   { src = gh('nvim-lualine/lualine.nvim') },
 
+  -- version = '*' in lazy.nvim means "latest semver tag". The vim.pack
+  -- equivalent is a range covering all majors — v4.9.1 is current.
+  { src = gh('akinsho/bufferline.nvim'), version = vim.version.range('*') },
+
+  -- ─ UI replacement for messages/cmdline ─
+  -- noice needs both of these; vim.pack resolves no dependencies, so they are
+  -- listed explicitly (nui = UI primitives, nvim-notify = the toast backend
+  -- noice routes messages to).
+  { src = gh('MunifTanjim/nui.nvim') },
+  { src = gh('rcarriga/nvim-notify') },
+  { src = gh('folke/noice.nvim') },
+
+  -- ─ Keymap discovery ─
+  { src = gh('folke/which-key.nvim') },
+
   -- ─ Treesitter ─
   -- version = 'main' is NOT redundant, and getting it wrong is a real hazard.
   -- This repo carries two live branches: 'main' is the 0.12-only rewrite, and
@@ -190,12 +205,16 @@ vim.pack.add({
 -- call into plugin code. Order is mostly irrelevant; ui goes first so the
 -- colorscheme is applied before anything draws.
 require('ak.plugins.ui')
+require('ak.plugins.lualine')
+require('ak.plugins.bufferline')
+require('ak.plugins.noice')
+require('ak.plugins.whichkey')
 -- TODO: uncomment each as it is written — they are being added one at a time.
 require('ak.plugins.telescope')
 require('ak.plugins.nvim_tree')
 require('ak.plugins.blink')
--- require('ak.plugins.conform')
--- require('ak.plugins.lint')
+require('ak.plugins.conform')
+require('ak.plugins.lint')
 -- require('ak.plugins.gitsigns')
 -- require('ak.plugins.neotest')
 -- require('ak.plugins.dap')

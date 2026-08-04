@@ -112,7 +112,7 @@ o.updatetime = 250
 
 -- How long to wait for a multi-key mapping to complete. Default 1000ms is a
 -- long stall on a half-typed leader sequence.
-o.timeoutlen = 300
+o.timeoutlen = 500
 
 -- ── Completion ─────────────────────────────────────────────────────────────
 -- menuone: show the menu even for a single match (so you can see what it is).

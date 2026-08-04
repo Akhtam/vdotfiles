@@ -47,7 +47,6 @@ vim.lsp.enable({
   'vtsls', -- TypeScript / JavaScript / React
   'eslint', -- JS/TS linting as LSP (gives you fixAll as a code action)
   'ruby_lsp', -- Ruby / Rails
-  'tailwindcss', -- Tailwind class completion + colour swatches
   'lua_ls', -- for editing this config
   'jsonls', -- package.json / tsconfig schema validation
   'yamlls', -- CI configs, docker-compose
