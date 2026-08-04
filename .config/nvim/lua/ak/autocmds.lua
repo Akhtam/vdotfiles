@@ -1,0 +1,198 @@
+-- lua/ak/autocmds.lua
+--
+-- Editor behaviour driven by events. Plugin-specific autocmds live with their
+-- plugin; these are all core-only.
+--
+-- Every autocmd below is registered in a named group created with clear = true.
+-- That matters: without a group, re-sourcing this file (or `:source $MYVIMRC`)
+-- stacks a SECOND copy of every autocmd, and they all fire. Clearing the group
+-- first makes this file safely re-runnable.
+
+local function augroup(name)
+  return vim.api.nvim_create_augroup('ak_' .. name, { clear = true })
+end
+
+local autocmd = vim.api.nvim_create_autocmd
+
+-- ── Highlight yanked text ──────────────────────────────────────────────────
+-- Brief flash over the region you just yanked. This is the only feedback Vim
+-- gives that a yank happened at all, and it makes motion-y yanks (y2j, yi{)
+-- verifiable at a glance.
+--
+-- API note: this is `vim.hl.on_yank` in 0.11+. The old `vim.highlight.on_yank`
+-- still resolves but is a deprecated alias.
+autocmd('TextYankPost', {
+  group = augroup('highlight_yank'),
+  callback = function()
+    vim.hl.on_yank({ higroup = 'IncSearch', timeout = 150 })
+  end,
+})
+
+-- ── Restore cursor position ────────────────────────────────────────────────
+-- Reopen a file on the line you left it. The `"` mark is set by Neovim when a
+-- buffer is unloaded and persisted in the shada file.
+--
+-- The line-count guard is not optional: if the file shrank since you last
+-- opened it (git checkout, rebase), the saved mark can point past the end of
+-- the buffer and nvim_win_set_cursor throws.
+autocmd('BufReadPost', {
+  group = augroup('restore_cursor'),
+  callback = function(ev)
+    local exclude = { 'gitcommit', 'gitrebase', 'commit', 'rebase' }
+    if vim.tbl_contains(exclude, vim.bo[ev.buf].filetype) then
+      return -- always start at the top when writing a commit message
+    end
+    local mark = vim.api.nvim_buf_get_mark(ev.buf, '"')
+    local line_count = vim.api.nvim_buf_line_count(ev.buf)
+    if mark[1] > 0 and mark[1] <= line_count then
+      pcall(vim.api.nvim_win_set_cursor, 0, mark)
+    end
+  end,
+})
+
+-- ── Large file guard ───────────────────────────────────────────────────────
+-- Rails apps reliably contain at least one file that will bring a treesitter
+-- highlighter to its knees: db/schema.rb in a mature app runs to tens of
+-- thousands of lines, and checked-in bundles or vendored JS are worse.
+--
+-- This marks such buffers with a b:ak_big_file flag BEFORE the file is read,
+-- and treesitter.lua checks that flag and skips attaching. We also drop the
+-- features whose cost scales with file size.
+--
+-- 1.5MB is a deliberate compromise: high enough that no hand-written source
+-- file trips it, low enough to catch generated output.
+local BIG_FILE_BYTES = 1.5 * 1024 * 1024
+
+autocmd('BufReadPre', {
+  group = augroup('big_file'),
+  callback = function(ev)
+    local ok, stats = pcall(vim.uv.fs_stat, vim.api.nvim_buf_get_name(ev.buf))
+    if not ok or not stats or stats.size <= BIG_FILE_BYTES then
+      return
+    end
+
+    vim.b[ev.buf].ak_big_file = true
+
+    -- Buffer-local: undo history and swap are per-buffer costs.
+    vim.bo[ev.buf].undofile = false
+    vim.bo[ev.buf].swapfile = false
+
+    -- Window-local: folding re-evaluates its expression constantly.
+    vim.wo.foldmethod = 'manual'
+    vim.wo.wrap = false
+
+    -- Regex syntax highlighting is the other O(file size) offender. Treesitter
+    -- is handled separately, by treesitter.lua reading the flag set above.
+    vim.cmd('syntax clear')
+
+    vim.notify(
+      ('Large file (%.1f MB): treesitter, syntax, and undo disabled'):format(stats.size / 1024 / 1024),
+      vim.log.levels.WARN
+    )
+  end,
+})
+
+-- ── Create missing directories on save ─────────────────────────────────────
+-- `:e src/components/new/Thing.tsx` on a path that doesn't exist yet fails at
+-- write time with E212. This creates the parent directories instead.
+--
+-- The `match:find('^%w+://')` check skips URL-ish buffer names (oil://, fugitive://,
+-- scp://) where the "directory" is not a filesystem path at all.
+autocmd('BufWritePre', {
+  group = augroup('auto_mkdir'),
+  callback = function(ev)
+    if ev.match:find('^%w+://') then
+      return
+    end
+    local file = vim.uv.fs_realpath(ev.match) or ev.match
+    vim.fn.mkdir(vim.fn.fnamemodify(file, ':p:h'), 'p')
+  end,
+})
+
+-- ── Close utility buffers with q ───────────────────────────────────────────
+-- Help, quickfix, and :checkhealth are read-only scratch windows; requiring
+-- :q for them is friction with no upside. Kept buffer-local so `q` still
+-- starts a macro recording everywhere else.
+autocmd('FileType', {
+  group = augroup('quick_close'),
+  pattern = {
+    'help',
+    'qf',
+    'man',
+    'checkhealth',
+    'lspinfo',
+    'startuptime',
+    'query', -- :InspectTree output
+  },
+  callback = function(ev)
+    vim.bo[ev.buf].buflisted = false -- keep them out of :bnext rotation
+    vim.keymap.set('n', 'q', '<cmd>close<CR>', { buffer = ev.buf, silent = true })
+  end,
+})
+
+-- ── Terminal buffers ───────────────────────────────────────────────────────
+-- Line numbers and a sign column in a terminal misalign its output and serve
+-- no purpose. Also start in insert mode so :terminal is immediately typeable.
+autocmd('TermOpen', {
+  group = augroup('terminal'),
+  callback = function()
+    vim.opt_local.number = false
+    vim.opt_local.relativenumber = false
+    vim.opt_local.signcolumn = 'no'
+    vim.cmd('startinsert')
+  end,
+})
+
+-- ── Equalize splits when the terminal is resized ───────────────────────────
+-- Without this, un-zooming Ghostty or changing font size leaves splits at
+-- their old absolute widths, often with one squeezed to a sliver.
+autocmd('VimResized', {
+  group = augroup('resize_splits'),
+  callback = function()
+    local current_tab = vim.fn.tabpagenr()
+    vim.cmd('tabdo wincmd =')
+    vim.cmd('tabnext ' .. current_tab) -- tabdo leaves you on the last tab
+  end,
+})
+
+-- ── Reload files changed outside Neovim ────────────────────────────────────
+-- 'autoread' is already on by default, but it only acts when Neovim happens to
+-- check. This triggers that check on focus and buffer entry, so files changed
+-- by git checkout, rubocop -a, or prettier --write appear updated rather than
+-- stale. Essential when formatters run outside the editor.
+autocmd({ 'FocusGained', 'TermClose', 'TermLeave', 'BufEnter' }, {
+  group = augroup('checktime'),
+  callback = function()
+    -- checktime errors in command-line window mode; guard rather than pcall so
+    -- the intent is visible.
+    if vim.o.buftype ~= 'nofile' then
+      vim.cmd('checktime')
+    end
+  end,
+})
+
+-- ── Per-filetype indent overrides ──────────────────────────────────────────
+-- options.lua sets a global 2-space default, correct for Ruby, TS, and JSX.
+-- These are the filetypes where that is actively wrong.
+autocmd('FileType', {
+  group = augroup('indent_overrides'),
+  pattern = { 'go', 'make', 'gitconfig' },
+  callback = function(ev)
+    -- These formats are tab-significant: Make requires literal tabs, and
+    -- gofmt emits them.
+    vim.bo[ev.buf].expandtab = false
+    vim.bo[ev.buf].shiftwidth = 4
+    vim.bo[ev.buf].tabstop = 4
+  end,
+})
+
+-- DELIBERATELY ABSENT: strip-trailing-whitespace on save.
+--
+-- It is the most commonly copy-pasted autocmd in Neovim configs and it is a
+-- bad fit here. conform.nvim will run prettierd on your JS/TS and rubocop on
+-- your Ruby, both of which already remove trailing whitespace in the files
+-- they own. A blanket stripper only affects the files they DON'T own —
+-- Markdown (where two trailing spaces are a hard line break), fixtures,
+-- vendored code, .patch files — and it rewrites lines you never touched,
+-- turning a two-line diff into a fifty-line one. 'list' is on in options.lua,
+-- so you can see the whitespace and remove it deliberately.

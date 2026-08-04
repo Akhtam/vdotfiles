@@ -1,0 +1,15 @@
+# Treesitter parsers and queries are no longer stored here at all —
+# nvim-treesitter installs both into stdpath('data')/site
+# (~/.local/share/nvim/site), outside this repo. Nothing to ignore, and nothing
+# to commit: `:TSUpdate` reproduces them from the plugin's pinned manifest.
+
+# NOT ignored, on purpose:
+#   nvim-pack-lock.json vim.pack's lockfile. `:h vim.pack-lockfile` says to
+#                       "treat lockfile like its part [of the config]: put
+#                       under version control" — with it committed, a new
+#                       machine installs every plugin at the exact revision
+#                       this one has.
+
+# Neovim writes these into the config dir in some workflows.
+spell/
+.netrwhist
