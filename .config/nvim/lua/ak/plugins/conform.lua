@@ -61,28 +61,28 @@ conform.setup({
   },
 
   -- ── Format on save ───────────────────────────────────────────────────────
-  format_on_save = function(bufnr)
-    -- Escape hatch: `:noautocmd w` won't help because conform uses BufWritePre,
-    -- so this checks a variable instead. Toggle it with <leader>mt below when
-    -- you need to save something the formatter would mangle (a fixture, a
-    -- vendored file, a half-finished refactor).
-    if vim.g.ak_disable_autoformat or vim.b[bufnr].ak_disable_autoformat then
-      return
-    end
-
-    return {
-      timeout_ms = 1000,
-
-      -- 'fallback' = use a formatter from the table above if one exists,
-      -- otherwise ask the LSP. This is what routes Ruby to ruby-lsp.
-      --
-      -- Note this is the modern spelling. The `lsp_fallback = true` in your old
-      -- config still works but is deprecated in current conform; `lsp_format`
-      -- takes 'never' | 'fallback' | 'prefer' | 'first' | 'last' and is more
-      -- explicit about ordering.
-      lsp_format = 'fallback',
-    }
-  end,
+  -- format_on_save = function(bufnr)
+  --   -- Escape hatch: `:noautocmd w` won't help because conform uses BufWritePre,
+  --   -- so this checks a variable instead. Toggle it with <leader>mt below when
+  --   -- you need to save something the formatter would mangle (a fixture, a
+  --   -- vendored file, a half-finished refactor).
+  --   if vim.g.ak_disable_autoformat or vim.b[bufnr].ak_disable_autoformat then
+  --     return
+  --   end
+  --
+  --   return {
+  --     timeout_ms = 1000,
+  --
+  --     -- 'fallback' = use a formatter from the table above if one exists,
+  --     -- otherwise ask the LSP. This is what routes Ruby to ruby-lsp.
+  --     --
+  --     -- Note this is the modern spelling. The `lsp_fallback = true` in your old
+  --     -- config still works but is deprecated in current conform; `lsp_format`
+  --     -- takes 'never' | 'fallback' | 'prefer' | 'first' | 'last' and is more
+  --     -- explicit about ordering.
+  --     lsp_format = 'fallback',
+  --   }
+  -- end,
 })
 
 -- ── Keymaps ────────────────────────────────────────────────────────────────
@@ -100,17 +100,17 @@ vim.keymap.set({ 'n', 'v' }, '<leader>mp', function()
 end, { desc = 'Format file or range (in visual mode)' })
 
 -- Toggle format-on-save. Buffer-local with a bang, global without.
-vim.api.nvim_create_user_command('FormatToggle', function(args)
-  if args.bang then
-    vim.b.ak_disable_autoformat = not vim.b.ak_disable_autoformat
-    vim.notify('Format on save ' .. (vim.b.ak_disable_autoformat and 'OFF' or 'ON') .. ' (buffer)')
-  else
-    vim.g.ak_disable_autoformat = not vim.g.ak_disable_autoformat
-    vim.notify('Format on save ' .. (vim.g.ak_disable_autoformat and 'OFF' or 'ON') .. ' (global)')
-  end
-end, { bang = true, desc = 'Toggle format on save' })
-
-vim.keymap.set('n', '<leader>mt', '<cmd>FormatToggle<CR>', { desc = 'Toggle format on save' })
+-- vim.api.nvim_create_user_command('FormatToggle', function(args)
+--   if args.bang then
+--     vim.b.ak_disable_autoformat = not vim.b.ak_disable_autoformat
+--     vim.notify('Format on save ' .. (vim.b.ak_disable_autoformat and 'OFF' or 'ON') .. ' (buffer)')
+--   else
+--     vim.g.ak_disable_autoformat = not vim.g.ak_disable_autoformat
+--     vim.notify('Format on save ' .. (vim.g.ak_disable_autoformat and 'OFF' or 'ON') .. ' (global)')
+--   end
+-- end, { bang = true, desc = 'Toggle format on save' })
+--
+-- vim.keymap.set('n', '<leader>mt', '<cmd>FormatToggle<CR>', { desc = 'Toggle format on save' })
 
 -- Which formatter would run here, and is it actually installed? The most
 -- common formatting question, and otherwise surprisingly hard to answer.

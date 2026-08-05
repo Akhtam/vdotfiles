@@ -84,7 +84,11 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
     -- Workspace-wide symbol search. gO covers the current document only, and
     -- in a Rails app "where is UserMailer" is a workspace question.
-    map('n', '<leader>ws', vim.lsp.buf.workspace_symbol, 'Workspace symbols')
+    --
+    -- MOVED from <leader>ws to <leader>wy: auto-session claims <leader>ws for
+    -- its session picker. Two maps under the same prefix would both work, but
+    -- <leader>ws would stall for 'timeoutlen' waiting to see which you meant.
+    map('n', '<leader>wy', vim.lsp.buf.workspace_symbol, 'Workspace symbols')
 
     -- ── Inlay hints ──
     -- Parameter names and inferred types rendered inline. Genuinely valuable

@@ -2,7 +2,3 @@ theme = TokyoNight Moon
 font-family = JetBrains Mono NL
 font-style-bold = false
 
-# Left Option acts as Alt/Meta so Neovim receives <A-h/j/k/l>; right Option
-# still types macOS special characters (é, #, …). Using `true` would give up
-# both keys. Requires a Ghostty restart (or Cmd+Shift+, to reload config).
-macos-option-as-alt = left

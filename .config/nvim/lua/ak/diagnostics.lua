@@ -16,21 +16,35 @@ local severity = vim.diagnostic.severity
 
 vim.diagnostic.config({
   -- ── Inline message display ───────────────────────────────────────────────
-  -- The central choice here, and it's a real trade.
+  -- End-of-line virtual text on every line with a problem, including the one
+  -- the cursor is on.
   --
-  -- virtual_text puts a truncated message at end-of-line. It's compact but it
-  -- lies by omission: a TypeScript "Type 'X' is not assignable to type 'Y'"
-  -- error involving generics runs to several hundred characters and you see
-  -- the first forty.
+  -- The trade you're accepting: a long message is truncated at the window
+  -- edge. TypeScript generic errors ("Type 'X' is not assignable to type 'Y'"
+  -- with inferred type parameters) routinely run past it. Two ways to read
+  -- the rest without changing this setting:
   --
-  -- virtual_lines renders the full message on its own lines beneath the code.
-  -- Scoped to `current_line`, you get the complete text exactly where you're
-  -- working, and nothing anywhere else. Other problem lines are still marked
-  -- by their sign in the gutter and their underline.
-  --
-  -- Toggle to end-of-line style with <leader>dv if you'd rather have it.
-  virtual_text = false,
-  virtual_lines = { current_line = true },
+  --   <leader>de   float with the full text (source included)
+  --   <leader>dv   toggle to virtual_lines, which renders the whole message
+  --                on its own lines below the current one
+  virtual_text = {
+    -- Leading marker so the message is visually separate from the code rather
+    -- than reading as a continuation of the line.
+    prefix = '●',
+    spacing = 2,
+
+    -- NOTE: `severity_sort` does NOT belong here. It looks like it should —
+    -- but in vim/diagnostic.lua it's a field of Opts.Float and of the
+    -- top-level Opts, read from the merged options inside M.show(). Nested
+    -- under virtual_text it is silently ignored.
+    --
+    -- The behaviour it would imply (most severe diagnostic wins the line) is
+    -- already provided by the top-level `severity_sort = true` further down.
+  },
+
+  -- Off, so the current line doesn't render the same diagnostic twice — once
+  -- beside it and once beneath. <leader>dv swaps which of the two is active.
+  virtual_lines = false,
 
   -- ── Gutter signs ─────────────────────────────────────────────────────────
   -- The 0.11+ table form. The old `vim.fn.sign_define('DiagnosticSignError',…)`
@@ -119,7 +133,7 @@ map('n', '<leader>dv', function()
   local using_lines = cfg.virtual_lines ~= false
   vim.diagnostic.config({
     virtual_lines = not using_lines and { current_line = true } or false,
-    virtual_text = using_lines and { spacing = 2, prefix = '●' } or false,
+    virtual_text = using_lines and { prefix = '●', spacing = 2 } or false,
   })
   vim.notify('Diagnostics: ' .. (using_lines and 'virtual text' or 'virtual lines'))
 end, { desc = 'Toggle diagnostic display style' })

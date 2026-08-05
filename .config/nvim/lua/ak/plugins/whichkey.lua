@@ -31,6 +31,8 @@ require('which-key').add({
   { '<leader>m', group = 'format' },
   { '<leader>T', group = 'test (neotest)' },
   { '<leader>g', group = 'git' },
+  { '<leader>h', group = 'hunks (gitsigns)' },
+  { '<leader>l', group = 'lazygit' },
   { '<leader>w', group = 'workspace' },
 })
 

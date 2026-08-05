@@ -95,11 +95,26 @@ vim.pack.add({
   { src = gh('folke/which-key.nvim') },
 
   -- ─ Editing ─
-  -- Add/change/delete surrounding pairs. Pinned to 4.x: the range idiom below
-  -- is the one nvim-surround's own README recommends, and it documents
-  -- vim.pack installation directly — worth noting, since it means upstream
-  -- tests against this exact setup.
-  { src = gh('kylechui/nvim-surround'), version = vim.version.range('4.x') },
+  -- Indent guides. Pinned to 3.x — v3 was a full rewrite that renamed the
+  -- module from 'indent_blankline' to 'ibl' (which is what lazy.nvim's
+  -- `main = "ibl"` was declaring), so a v4 would likely move it again.
+  { src = gh('lukas-reineke/indent-blankline.nvim'), version = vim.version.range('3.x') },
+
+  -- Auto-close brackets and quotes as you type. Deliberately UNPINNED: the
+  -- repo has exactly one tag (0.10.0) and has moved well past it on the
+  -- default branch, so a version range would pin you to stale code. The
+  -- lockfile still records the exact revision.
+  { src = gh('windwp/nvim-autopairs') },
+
+  -- ─ Sessions ─
+  -- Auto-saves a session per working directory and restores it on re-entry.
+  { src = gh('rmagatti/auto-session'), version = vim.version.range('2.x') },
+
+  -- ─ tmux integration ─
+  -- The NVIM half of a paired plugin. The tmux half is already installed via
+  -- TPM at ~/.tmux/plugins/vim-tmux-navigator, declared in ~/.dotfiles/.tmux.conf.
+  -- Using the same repo for both halves means they can't drift apart.
+  { src = gh('christoomey/vim-tmux-navigator') },
 
   -- ─ Treesitter ─
   -- version = 'main' is NOT redundant, and getting it wrong is a real hazard.
@@ -172,6 +187,14 @@ vim.pack.add({
   -- ─ Git ─
   { src = gh('lewis6991/gitsigns.nvim') },
 
+  -- A floating terminal wrapper around the `lazygit` binary (already installed
+  -- at /opt/homebrew/bin/lazygit, 0.64.0 — the plugin is only the window, it
+  -- shells out for everything else). UNPINNED: the repo carries no tags at all,
+  -- so there is no version range to give; the lockfile records the revision.
+  --
+  -- It requires plenary, which is already listed above for telescope/neotest.
+  { src = gh('kdheepak/lazygit.nvim') },
+
   -- ─ Testing ─
   { src = gh('nvim-neotest/nvim-nio') }, -- async library neotest is built on
   { src = gh('nvim-neotest/neotest') },
@@ -216,13 +239,17 @@ require('ak.plugins.lualine')
 require('ak.plugins.bufferline')
 require('ak.plugins.noice')
 require('ak.plugins.whichkey')
-require('ak.plugins.surround')
+require('ak.plugins.indent')
+require('ak.plugins.autopairs')
+require('ak.plugins.autosession')
+require('ak.plugins.tmux')
 -- TODO: uncomment each as it is written — they are being added one at a time.
 require('ak.plugins.telescope')
 require('ak.plugins.nvim_tree')
 require('ak.plugins.blink')
 require('ak.plugins.conform')
 require('ak.plugins.lint')
--- require('ak.plugins.gitsigns')
+require('ak.plugins.gitsigns')
+require('ak.plugins.lazygit')
 -- require('ak.plugins.neotest')
 -- require('ak.plugins.dap')
