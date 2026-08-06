@@ -3,6 +3,8 @@
 -- Ported from your lazy.nvim config: same centred-float layout, same ratios,
 -- same four keymaps. Differences are marked and explained.
 
+require('mini.icons').setup()
+require('mini.icons').mock_nvim_web_devicons()
 local nvimtree = require('nvim-tree')
 
 -- ── Disable netrw ──────────────────────────────────────────────────────────

@@ -148,7 +148,13 @@ vim.pack.add({
   -- so the glyphs resolve. Ghostty falls back to it for the private-use-area
   -- codepoints even though font-family is the unpatched "JetBrains Mono NL".
   -- Without this plugin nvim-tree still works, just with no file icons.
-  { src = gh('nvim-tree/nvim-web-devicons') },
+  { src = gh('nvim-mini/mini.icons') },
+
+  -- ─ Markdown rendering ─
+  -- Renders markdown in the buffer as you read it — headings, code blocks,
+  -- tables, and checkboxes drawn as virtual text instead of raw syntax, with
+  -- the line under the cursor left as plain text so it stays editable.
+  { src = gh('MeanderingProgrammer/render-markdown.nvim') },
 
   -- ─ Completion ─
   -- PINNED TO 1.x DELIBERATELY. blink.cmp's README currently carries:
