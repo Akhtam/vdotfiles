@@ -168,6 +168,7 @@ alias vm="nvim"
 alias py="python3"
 alias oc="opencode"
 alias clc="claude"
+alias pn="pnpm"
 
 BAT_THEME="tokyonight_night"
 # Set up fzf key bindings and fuzzy completion
