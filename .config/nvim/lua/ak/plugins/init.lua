@@ -78,10 +78,10 @@ vim.pack.add({
   { src = gh('folke/which-key.nvim') },
 
   -- ─ Editing ─
-  -- Indent guides. Pinned to 3.x — v3 was a full rewrite that renamed the
-  -- module from 'indent_blankline' to 'ibl' (which is what lazy.nvim's
-  -- `main = "ibl"` was declaring), so a v4 would likely move it again.
-  { src = gh('lukas-reineke/indent-blankline.nvim'), version = vim.version.range('3.x') },
+  -- Indent guides used to be lukas-reineke/indent-blankline.nvim here; now
+  -- provided by snacks.nvim's `indent` module instead (config in
+  -- plugins/snacks.lua) — one less plugin to pin/update, and consistent with
+  -- the other snacks modules already in use (image, notifier, lazygit, ...).
 
   -- Auto-close brackets and quotes as you type. Deliberately UNPINNED: the
   -- repo has exactly one tag (0.10.0) and has moved well past it on the
@@ -231,13 +231,14 @@ require('ak.plugins.lualine')
 require('ak.plugins.bufferline')
 require('ak.plugins.noice')
 require('ak.plugins.whichkey')
-require('ak.plugins.indent')
 require('ak.plugins.autopairs')
 require('ak.plugins.autosession')
 require('ak.plugins.tmux')
 -- TODO: uncomment each as it is written — they are being added one at a time.
 require('ak.plugins.snacks')
 require('ak.plugins.picker')
+require('ak.plugins.gh')
+require('ak.plugins.words')
 require('ak.plugins.explorer')
 require('ak.plugins.blink')
 require('ak.plugins.conform')

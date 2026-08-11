@@ -2,8 +2,8 @@
 --
 -- snacks.nvim ships ~30 independent modules, each opt-in: a module only
 -- activates if you pass it options here. `image`, `notifier`, `lazygit`,
--- `picker`, and `explorer` are configured; nothing else in the bundle
--- activates.
+-- `picker`, `explorer`, `indent`, and `words` are configured; nothing else
+-- in the bundle activates.
 --
 -- ── image ──────────────────────────────────────────────────────────────────
 -- Renders images using the terminal's graphics protocol (kitty protocol —
@@ -61,6 +61,35 @@
 -- Both already default true; declared for visibility, same as `lazygit = {}`
 -- above. Keymap lives in lua/ak/plugins/explorer.lua.
 --
+-- ── indent ─────────────────────────────────────────────────────────────────
+-- Replaces lukas-reineke/indent-blankline.nvim. Same two settings ported
+-- 1:1, everything else left at snacks' defaults:
+--
+--   indent.char = '▏'    U+258F LEFT ONE EIGHTH BLOCK, same thinner-than-│
+--                        guide ibl was using — matters at 2-space indentation
+--                        (Ruby, TS, JSX in options.lua) where guides sit close
+--                        together.
+--   scope.enabled = false   ibl had this off too. Scope highlighting is
+--                        treesitter-driven, and in ERB the tree is three
+--                        injected languages deep (embedded_template + html +
+--                        ruby) — scope resolution across those injection
+--                        boundaries is exactly where it gets confused and
+--                        draws the highlight around the wrong block. Off
+--                        avoids that entirely, same reasoning as before.
+--
+-- No keymap file: like `image`/`notifier`, this module has no user-facing
+-- commands, just per-window rendering — config here is the whole story.
+--
+-- ── words ──────────────────────────────────────────────────────────────────
+-- Auto-highlights every reference to the symbol under the cursor and lets you
+-- jump between them, on top of `textDocument/documentHighlight` — same LSP
+-- request lsp.lua's old CursorHold-triggered `document_highlight()` used, but
+-- driven by CursorMoved with its own 200ms debounce instead of 'updatetime',
+-- plus the `]]`/`[[` jump that hand-rolled version never had. Replaces that
+-- block entirely (see lsp.lua) rather than running alongside it — two
+-- listeners fighting over the same highlight would just flicker. Defaults
+-- otherwise; keymaps live in lua/ak/plugins/words.lua.
+--
 -- Ignore list, ported from telescope's `file_ignore_patterns`. Glob syntax
 -- here (passed to fd's `-E` / rg's `-g !...`) rather than Lua patterns.
 -- telescope's `file_ignore_patterns` lived in `defaults` and so applied to
@@ -96,6 +125,12 @@ require('snacks').setup({
     style = 'fancy',
     top_down = false,
   },
+  indent = {
+    enabled = true,
+    indent = { char = '▏' },
+    scope = { enabled = false },
+  },
+  words = { enabled = true },
   -- No `enabled` flag exists for this module — unlike `image`/`notifier` it's
   -- not gated, just called on demand (`Snacks.lazygit()`). The empty table is
   -- here purely so this module's presence is visible at a glance next to the

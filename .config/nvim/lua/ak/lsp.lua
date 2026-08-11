@@ -135,33 +135,22 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end
 
     -- ── Document highlight ──
-    -- Underline other occurrences of the symbol under the cursor after
-    -- 'updatetime' (250ms, set in options.lua). Cheap way to see every use of
-    -- a variable without invoking references.
-    if client:supports_method('textDocument/documentHighlight') then
-      local hl_group = vim.api.nvim_create_augroup('ak_lsp_highlight_' .. buf, { clear = true })
-      vim.api.nvim_create_autocmd({ 'CursorHold', 'CursorHoldI' }, {
-        group = hl_group,
-        buffer = buf,
-        callback = vim.lsp.buf.document_highlight,
-      })
-      vim.api.nvim_create_autocmd({ 'CursorMoved', 'CursorMovedI' }, {
-        group = hl_group,
-        buffer = buf,
-        callback = vim.lsp.buf.clear_references,
-      })
-    end
+    -- Underline other occurrences of the symbol under the cursor. Handled by
+    -- snacks.nvim's `words` module now (plugins/snacks.lua) instead of a
+    -- hand-rolled CursorHold/CursorMoved pair here — same
+    -- `textDocument/documentHighlight` request, plus `]]`/`[[` jump between
+    -- occurrences (plugins/words.lua). No per-client wiring needed: `words`
+    -- checks `supports_method` itself on every cursor move.
   end,
 })
 
 -- ── Cleanup on detach ──────────────────────────────────────────────────────
--- Without this, the per-buffer augroups above outlive the client. After a
--- :LspRestart the document-highlight autocmds would call into a dead client on
--- every CursorHold, throwing errors 4x a second.
+-- Clears any reference highlight left behind by the detaching client (from
+-- `words`, see plugins/snacks.lua) — otherwise a stale underline can survive
+-- a :LspRestart with no client left to ever clear it.
 vim.api.nvim_create_autocmd('LspDetach', {
   group = vim.api.nvim_create_augroup('ak_lsp_detach', { clear = true }),
-  callback = function(ev)
-    pcall(vim.api.nvim_del_augroup_by_name, 'ak_lsp_highlight_' .. ev.buf)
+  callback = function()
     vim.lsp.buf.clear_references()
   end,
 })

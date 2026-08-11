@@ -195,51 +195,47 @@ end, opts('LSP workspace symbols'))
 -- ── <leader>g — git pickers ──────────────────────────────────────────────────
 -- The 'git' which-key group (whichkey.lua) was declared but unpopulated —
 -- gitsigns owns <leader>h (hunks) instead, so this whole prefix was free.
+--
+-- Whole group floats at 90% instead of the global `ivy` layout used above —
+-- same override and reasoning as the gh_issue/gh_pr pickers in gh.lua (which
+-- share this <leader>g prefix): kept consistent across the whole prefix
+-- rather than splitting it by content type.
+local float = { layout = { preset = 'default', layout = { width = 0.9, height = 0.9 } } }
+
 map('n', '<leader>gb', function()
-  Snacks.picker.git_branches()
+  Snacks.picker.git_branches(float)
 end, opts('Git branches'))
 
 map('n', '<leader>gl', function()
-  Snacks.picker.git_log()
+  Snacks.picker.git_log(float)
 end, opts('Git log'))
 
 map('n', '<leader>gL', function()
-  Snacks.picker.git_log_line()
+  Snacks.picker.git_log_line(float)
 end, opts('Git log line'))
 
 map('n', '<leader>gs', function()
-  Snacks.picker.git_status()
+  Snacks.picker.git_status(float)
 end, opts('Git status'))
 
 map('n', '<leader>gS', function()
-  Snacks.picker.git_stash()
+  Snacks.picker.git_stash(float)
 end, opts('Git stash'))
 
 map('n', '<leader>gd', function()
-  Snacks.picker.git_diff()
+  Snacks.picker.git_diff(float)
 end, opts('Git diff (hunks)'))
 
 map('n', '<leader>gf', function()
-  Snacks.picker.git_log_file()
+  Snacks.picker.git_log_file(float)
 end, opts('Git log file'))
 
--- GitHub issues/PRs, via the `gh` CLI — same prerequisite as lazygit needing
--- the `lazygit` binary. Silently unusable without `gh` installed/authed.
-map('n', '<leader>gi', function()
-  Snacks.picker.gh_issue()
-end, opts('GitHub issues (open)'))
-
-map('n', '<leader>gI', function()
-  Snacks.picker.gh_issue({ state = 'all' })
-end, opts('GitHub issues (all)'))
-
-map('n', '<leader>gp', function()
-  Snacks.picker.gh_pr()
-end, opts('GitHub pull requests (open)'))
-
-map('n', '<leader>gP', function()
-  Snacks.picker.gh_pr({ state = 'all' })
-end, opts('GitHub pull requests (all)'))
+-- GitHub issues/PRs (<leader>gi/gI/gp/gP) also live under this same prefix,
+-- but are bound in lua/ak/plugins/gh.lua instead of here — same split as
+-- lazygit.lua, since they depend on the external `gh` CLI. Still
+-- `Snacks.picker.*` calls under the hood, just kept out of this file's "every
+-- picker source" list. Same `float` override applied there too, independently
+-- (each file stays self-contained rather than sharing this local).
 
 -- ── <leader>u — ui ───────────────────────────────────────────────────────────
 -- New group: nothing claimed <leader>u before this.
