@@ -91,10 +91,6 @@ end, opts('Help tags'))
 
 -- Top-level: unprefixed, since none collide with anything (space/comma/slash
 -- are otherwise unused at the top of the leader tree).
-map('n', '<leader><space>', function()
-  Snacks.picker.smart()
-end, opts('Smart find files'))
-
 map('n', '<leader>,', function()
   Snacks.picker.buffers()
 end, opts('Buffers'))
