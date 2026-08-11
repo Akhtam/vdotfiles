@@ -78,7 +78,18 @@ lualine.setup({
     globalstatus = true,
 
     disabled_filetypes = {
-      statusline = { 'NvimTree', 'dapui_scopes', 'dapui_stacks', 'dapui_watches', 'dapui_console' },
+      -- 'snacks_picker_*' covers every picker AND the explorer (it's a picker
+      -- under the hood — see explorer.lua) — replaces the old 'NvimTree'
+      -- entry, plus every other picker window that never needed one before.
+      statusline = {
+        'snacks_picker_input',
+        'snacks_picker_list',
+        'snacks_picker_preview',
+        'dapui_scopes',
+        'dapui_stacks',
+        'dapui_watches',
+        'dapui_console',
+      },
     },
   },
 
@@ -103,5 +114,7 @@ lualine.setup({
     lualine_b = { { 'filename', path = 1 } },
   },
 
-  extensions = { 'quickfix', 'man', 'nvim-tree' },
+  -- 'nvim-tree' dropped: no lualine extension ships for snacks' explorer, and
+  -- `disabled_filetypes.statusline` above already covers its window.
+  extensions = { 'quickfix', 'man' },
 })

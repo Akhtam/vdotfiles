@@ -34,9 +34,9 @@ npairs.setup({
   },
 
   -- ── Filetypes to skip ────────────────────────────────────────────────────
-  -- telescope's prompt is a real buffer; pairing inside a search query is
+  -- the picker's prompt is a real buffer; pairing inside a search query is
   -- actively unhelpful when you're typing a regex.
-  disable_filetype = { 'TelescopePrompt', 'snacks_picker_input', 'vim' },
+  disable_filetype = { 'snacks_picker_input', 'vim' },
 
   -- Don't add a closing pair when the very next character is alphanumeric —
   -- so typing `(` before an existing word wraps rather than orphans a `)`.
@@ -63,7 +63,7 @@ npairs.setup({
   -- NOTE: this needs the Alt key to reach Neovim. That depends on Ghostty's
   -- `macos-option-as-alt` setting — with it unset, Option emits `´` rather
   -- than <A-e> and this binding is inert. The same applies to the <A-j>/<A-k>
-  -- telescope mappings and the <A-h/j/k/l> insert-mode arrows in keymaps.lua.
+  -- picker mappings and the <A-h/j/k/l> insert-mode arrows in keymaps.lua.
   fast_wrap = {
     map = '<A-e>',
     chars = { '{', '[', '(', '"', "'", '`' },

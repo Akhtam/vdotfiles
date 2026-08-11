@@ -1,6 +1,6 @@
 -- lua/ak/keymaps.lua
 --
--- Plugin-independent keymaps only. Anything that drives a plugin (telescope,
+-- Plugin-independent keymaps only. Anything that drives a plugin (picker,
 -- gitsigns, neotest, dap, LSP) lives in that plugin's own file, so a binding is
 -- always next to the thing it controls.
 --
@@ -105,8 +105,8 @@ map("v", "<leader>P", '"_dP', { desc = "Paste over selection, keep register" })
 
 -- ── Quickfix ───────────────────────────────────────────────────────────────
 -- ]q / [q mirror the built-in ]d / [d diagnostic pair. The quickfix list is
--- what :grep (ripgrep, wired up in options.lua) and telescope's
--- send-to-quickfix both populate.
+-- what :grep (ripgrep, wired up in options.lua) and the picker's
+-- send-to-quickfix (<C-q>) both populate.
 map("n", "]q", "<cmd>cnext<CR>zz", { desc = "Next quickfix item" })
 map("n", "[q", "<cmd>cprev<CR>zz", { desc = "Prev quickfix item" })
 map("n", "<leader>q", "<cmd>copen<CR>", { desc = "Open quickfix list" })

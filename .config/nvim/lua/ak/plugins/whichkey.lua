@@ -22,8 +22,8 @@ require('which-key').setup({
 -- ── Group labels ───────────────────────────────────────────────────────────
 -- Without these the popup shows bare prefixes; with them it names each group.
 require('which-key').add({
-  { '<leader>f', group = 'find (telescope)' },
-  { '<leader>e', group = 'explorer (nvim-tree)' },
+  { '<leader>f', group = 'find (picker)' },
+  { '<leader>e', group = 'explorer (snacks)' },
   { '<leader>d', group = 'diagnostics' },
   { '<leader>t', group = 'tabs' },
   { '<leader>s', group = 'splits' },
@@ -34,6 +34,7 @@ require('which-key').add({
   { '<leader>h', group = 'hunks (gitsigns)' },
   { '<leader>l', group = 'lazygit' },
   { '<leader>w', group = 'workspace' },
+  { '<leader>u', group = 'ui' },
 })
 
 -- Yours, verbatim: show only the keymaps local to the current buffer. Useful

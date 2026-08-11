@@ -36,18 +36,20 @@ require('auto-session').setup({
   auto_create = true,
 
   -- OFF deliberately. With this on, a `:cd` mid-session saves the current
-  -- session and swaps to another — which sounds convenient but means telescope
-  -- or nvim-tree changing the cwd can silently swap your whole workspace.
+  -- session and swaps to another — which sounds convenient but means the
+  -- picker or explorer changing the cwd can silently swap your whole workspace.
   cwd_change_handling = false,
 
-  -- Default true, and it's what makes nvim-tree safe here: nvim-tree's window
+  -- Default true, and it's what makes the explorer safe here: its window
   -- isn't backed by a real file, so :mksession would restore a broken one.
   -- This closes such windows before saving.
   close_unsupported_windows = true,
 
   -- Don't save a session whose only open buffer is one of these — no point
-  -- persisting "I opened nvim and looked at the tree".
-  bypass_save_filetypes = { 'NvimTree' },
+  -- persisting "I opened nvim and looked at the tree". `snacks_picker_list`
+  -- is the explorer's filetype (it's a picker under the hood — see
+  -- explorer.lua); nvim-tree's was 'NvimTree'.
+  bypass_save_filetypes = { 'snacks_picker_list' },
 
   -- Delete sessions untouched for 30 days, asynchronously at startup. Without
   -- this the session directory grows a file per project you ever opened,

@@ -3,15 +3,16 @@
 -- Replaces the cmdline, messages, and popupmenu with floating windows.
 -- Your config, with one override removed — marked CHANGED.
 
--- nvim-notify is noice's toast backend. In your lazy config this was set via
--- the dependency's `opts`; vim.pack has no equivalent, so it's an explicit
--- setup call. It must run BEFORE noice.setup(), because noice checks for a
--- configured notify backend at setup time.
-require('notify').setup({
-  -- Toasts stack upward from the bottom. Keeps them clear of the cmdline
-  -- popup, which the views block below positions at 50% height.
-  top_down = false,
-})
+-- Toast backend: noice's "notify" view tries backends in order
+-- `{ "snacks", "notify" }` and picks the first one whose `is_available()`
+-- passes — see noice/config/views.lua and noice/view/backend/snacks.lua. That
+-- check runs lazily, the first time a notification actually needs a view, not
+-- at noice.setup() time — so it doesn't matter that this file is required
+-- before plugins/snacks.lua at the bottom of plugins/init.lua; by the time
+-- anything notifies, every plugin has loaded. snacks.nvim's `notifier` module
+-- (enabled there) wins automatically; nvim-notify is no longer installed. No
+-- setup call needed here — that's the one thing the old nvim-notify backend
+-- required that this one doesn't.
 
 local noice = require('noice')
 

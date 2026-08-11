@@ -21,7 +21,8 @@
 -- ── Options ────────────────────────────────────────────────────────────────
 -- These are read by the plugin's plugin/ file at source time. Setting them
 -- here works because vim.pack defers plugin/ sourcing until after init.lua
--- finishes — the same timing that makes the netrw flags in nvim_tree.lua work.
+-- finishes, so the vim.g flags below are already in place by the time this
+-- plugin's plugin/ file reads them.
 
 -- Your `disable_when_zoomed = true`. When a tmux pane is zoomed, don't
 -- navigate out of it — zoom means "I want only this pane", and silently
@@ -60,5 +61,5 @@ map('n', '<C-l>', '<cmd>TmuxNavigateRight<CR>', { desc = 'Navigate right (split 
 
 -- No conflicts with these, checked:
 --   blink.cmp binds <C-h>/<C-l> for snippet jumps — INSERT mode only.
---   telescope binds <C-h> to file_split — buffer-local inside the picker,
---   which correctly shadows navigation while a picker is open.
+--   the snacks picker binds <C-h> to edit_split — buffer-local inside the
+--   picker, which correctly shadows navigation while a picker is open.

@@ -29,7 +29,7 @@ end
 vim.api.nvim_create_autocmd('PackChanged', {
   group = vim.api.nvim_create_augroup('ak_pack_build', { clear = true }),
   callback = function(ev)
-    local name, kind, path = ev.data.spec.name, ev.data.kind, ev.data.path
+    local name, kind = ev.data.spec.name, ev.data.kind
 
     -- Only 'install' and 'update' change code on disk. 'delete' obviously
     -- needs no build.
@@ -52,22 +52,6 @@ vim.api.nvim_create_autocmd('PackChanged', {
       end
       vim.cmd('TSUpdate')
     end
-
-    if name == 'telescope-fzf-native.nvim' then
-      -- A C extension providing fzf's matching algorithm to telescope. Without
-      -- it telescope falls back to a pure-Lua sorter that is noticeably slower
-      -- on large repos — which, with a Rails app plus node_modules, is you.
-      vim.notify('building telescope-fzf-native…', vim.log.levels.INFO)
-      vim.system({ 'make' }, { cwd = path }, function(out)
-        vim.schedule(function()
-          if out.code == 0 then
-            vim.notify('telescope-fzf-native built', vim.log.levels.INFO)
-          else
-            vim.notify('fzf-native build FAILED:\n' .. (out.stderr or ''), vim.log.levels.ERROR)
-          end
-        end)
-      end)
-    end
   end,
 })
 
@@ -84,11 +68,10 @@ vim.pack.add({
   { src = gh('akinsho/bufferline.nvim'), version = vim.version.range('*') },
 
   -- ─ UI replacement for messages/cmdline ─
-  -- noice needs both of these; vim.pack resolves no dependencies, so they are
-  -- listed explicitly (nui = UI primitives, nvim-notify = the toast backend
-  -- noice routes messages to).
+  -- noice needs this; vim.pack resolves no dependencies, so it is listed
+  -- explicitly (nui = UI primitives noice's popups are built from). The toast
+  -- backend is snacks.nvim's `notifier` module, below, not a separate plugin.
   { src = gh('MunifTanjim/nui.nvim') },
-  { src = gh('rcarriga/nvim-notify') },
   { src = gh('folke/noice.nvim') },
 
   -- ─ Keymap discovery ─
@@ -132,22 +115,19 @@ vim.pack.add({
   { src = gh('nvim-treesitter/nvim-treesitter'), version = 'main' },
 
   -- ─ Shared library ─
-  -- Async/job/path utilities. Not used directly by us; telescope and the
-  -- neotest adapters both require it, and vim.pack has no dependency
-  -- resolution — every transitive dependency must be listed explicitly.
-  -- That's a real difference from lazy.nvim, and this is the cost.
+  -- Async/job/path utilities. Not used directly by us; the neotest adapters
+  -- require it, and vim.pack has no dependency resolution — every transitive
+  -- dependency must be listed explicitly. That's a real difference from
+  -- lazy.nvim, and this is the cost.
   { src = gh('nvim-lua/plenary.nvim') },
 
-  -- ─ Fuzzy finding ─
-  { src = gh('nvim-telescope/telescope.nvim') },
-  { src = gh('nvim-telescope/telescope-fzf-native.nvim') }, -- built by the hook above
-
-  -- ─ File explorer ─
-  { src = gh('nvim-tree/nvim-tree.lua') },
-  -- Optional for nvim-tree, but you already have a Nerd Font 2.3.3 installed,
-  -- so the glyphs resolve. Ghostty falls back to it for the private-use-area
+  -- ─ Icons ─
+  -- Consumed by the snacks explorer/picker (file/git-status icons) and, per
+  -- its own doc comment, auto-detected by anything that calls
+  -- `MiniIcons.get()` — you already have a Nerd Font 2.3.3 installed, so the
+  -- glyphs resolve. Ghostty falls back to it for the private-use-area
   -- codepoints even though font-family is the unpatched "JetBrains Mono NL".
-  -- Without this plugin nvim-tree still works, just with no file icons.
+  -- Everything that uses it still works without it, just with generic icons.
   { src = gh('nvim-mini/mini.icons') },
 
   -- ─ Markdown rendering ─
@@ -155,6 +135,18 @@ vim.pack.add({
   -- tables, and checkboxes drawn as virtual text instead of raw syntax, with
   -- the line under the cursor left as plain text so it stays editable.
   { src = gh('MeanderingProgrammer/render-markdown.nvim') },
+
+  -- ─ snacks.nvim ─
+  -- A bundle of ~30 independent modules (dashboard, indent, terminal, etc.),
+  -- each opt-in: per its README, a module only activates if you explicitly
+  -- pass it options in setup(). Five are configured (see
+  -- lua/ak/plugins/snacks.lua) — `image`, `notifier` (noice's toast backend,
+  -- replacing nvim-notify), `lazygit` (replacing kdheepak/lazygit.nvim, see
+  -- lua/ak/plugins/lazygit.lua), `picker` (replacing telescope.nvim +
+  -- telescope-fzf-native, see lua/ak/plugins/picker.lua), and `explorer`
+  -- (replacing nvim-tree, see lua/ak/plugins/explorer.lua) — nothing else in
+  -- the bundle activates.
+  { src = gh('folke/snacks.nvim') },
 
   -- ─ Completion ─
   -- PINNED TO 1.x DELIBERATELY. blink.cmp's README currently carries:
@@ -192,14 +184,8 @@ vim.pack.add({
 
   -- ─ Git ─
   { src = gh('lewis6991/gitsigns.nvim') },
-
-  -- A floating terminal wrapper around the `lazygit` binary (already installed
-  -- at /opt/homebrew/bin/lazygit, 0.64.0 — the plugin is only the window, it
-  -- shells out for everything else). UNPINNED: the repo carries no tags at all,
-  -- so there is no version range to give; the lockfile records the revision.
-  --
-  -- It requires plenary, which is already listed above for telescope/neotest.
-  { src = gh('kdheepak/lazygit.nvim') },
+  -- LazyGit float is snacks.nvim's `lazygit` module, above — no separate
+  -- plugin. See lua/ak/plugins/lazygit.lua for the keymaps.
 
   -- ─ Testing ─
   { src = gh('nvim-neotest/nvim-nio') }, -- async library neotest is built on
@@ -250,8 +236,9 @@ require('ak.plugins.autopairs')
 require('ak.plugins.autosession')
 require('ak.plugins.tmux')
 -- TODO: uncomment each as it is written — they are being added one at a time.
-require('ak.plugins.telescope')
-require('ak.plugins.nvim_tree')
+require('ak.plugins.snacks')
+require('ak.plugins.picker')
+require('ak.plugins.explorer')
 require('ak.plugins.blink')
 require('ak.plugins.conform')
 require('ak.plugins.lint')
