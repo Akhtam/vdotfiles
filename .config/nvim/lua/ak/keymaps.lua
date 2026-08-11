@@ -30,14 +30,13 @@ map("n", "<leader>sx", "<cmd>close<CR>", { desc = "Close current split" })
 -- gives them their extra behaviour.
 
 -- ── Tabs ───────────────────────────────────────────────────────────────────
--- NOTE: this claims the whole <leader>t namespace. neotest conventionally uses
--- <leader>t too, so when we write neotest.lua its maps go under <leader>T
--- (capital) to leave your muscle memory intact. See the note at the end.
-map("n", "<leader>to", "<cmd>tabnew<CR>", { desc = "Open new tab" })
-map("n", "<leader>tx", "<cmd>tabclose<CR>", { desc = "Close current tab" })
-map("n", "<leader>tn", "<cmd>tabn<CR>", { desc = "Go to next tab" })
-map("n", "<leader>tp", "<cmd>tabp<CR>", { desc = "Go to previous tab" })
-map("n", "<leader>tf", "<cmd>tabnew %<CR>", { desc = "Open current buffer in new tab" })
+-- NOTE: <leader>t is claimed by neotest (its maps live in neotest.lua), so
+-- tabs share the capitalized <leader>T namespace instead.
+map("n", "<leader>To", "<cmd>tabnew<CR>", { desc = "Open new tab" })
+map("n", "<leader>Tx", "<cmd>tabclose<CR>", { desc = "Close current tab" })
+map("n", "<leader>Tn", "<cmd>tabn<CR>", { desc = "Go to next tab" })
+map("n", "<leader>Tp", "<cmd>tabp<CR>", { desc = "Go to previous tab" })
+map("n", "<leader>Tf", "<cmd>tabnew %<CR>", { desc = "Open current buffer in new tab" })
 
 -- ── Toggles ────────────────────────────────────────────────────────────────
 map("n", "<leader>nr", "<cmd>set relativenumber!<CR>", { desc = "Toggle relative number" })

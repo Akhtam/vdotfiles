@@ -50,50 +50,49 @@ require('neotest').setup({
 })
 
 -- ── Keymaps ────────────────────────────────────────────────────────────────
--- <leader>t is claimed by tabs (keymaps.lua), so these live under <leader>T
--- per the reservation noted there. Letters mirror LazyVim's neotest keymap
--- scheme (just capitalised) rather than inventing a new one, so muscle memory
--- transfers if you've used neotest anywhere else.
+-- These claim the whole <leader>t namespace; tabs live under <leader>T in
+-- keymaps.lua so they don't collide. Letters mirror LazyVim's neotest keymap
+-- scheme, so muscle memory transfers if you've used neotest anywhere else.
 local function map(lhs, rhs, desc)
   vim.keymap.set('n', lhs, rhs, { desc = desc })
 end
 
-map('<leader>Tt', function()
+map('<leader>tt', function()
   require('neotest').run.run()
 end, 'Run nearest test')
 
-map('<leader>Tf', function()
+map('<leader>tf', function()
   require('neotest').run.run(vim.fn.expand('%'))
 end, 'Run current file')
 
-map('<leader>Tl', function()
+map('<leader>tl', function()
   require('neotest').run.run_last()
 end, 'Run last test')
 
-map('<leader>TS', function()
+map('<leader>tS', function()
   require('neotest').run.stop()
 end, 'Stop test')
 
 -- Tree view of every test in the project and its last-known status. Persists
 -- across runs, updates live.
-map('<leader>Ts', function()
+map('<leader>ts', function()
   require('neotest').summary.toggle()
 end, 'Toggle summary')
 
 -- Float with the output of the test under the cursor.
-map('<leader>To', function()
+map('<leader>to', function()
   require('neotest').output.open({ enter = true })
 end, 'Show output (nearest)')
 
 -- Bottom panel, streams output as tests run rather than showing it after the
 -- fact — useful for a slow suite where you want to watch progress.
-map('<leader>TO', function()
+map('<leader>tO', function()
   require('neotest').output_panel.toggle()
 end, 'Toggle output panel')
 
 -- Reruns the current file's tests on every save. Off by default per file;
 -- toggle it on while you're iterating on one spec, off again when you're done
 -- so an unrelated save elsewhere doesn't trigger it.
-map('<leader>Tw', function()
+map('<leader>tw', function()
   require('neotest').watch.toggle(vim.fn.expand('%'))
 end, 'Toggle watch (current file)')
