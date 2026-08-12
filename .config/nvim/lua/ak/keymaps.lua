@@ -110,9 +110,9 @@ map("n", "]q", "<cmd>cnext<CR>zz", { desc = "Next quickfix item" })
 map("n", "[q", "<cmd>cprev<CR>zz", { desc = "Prev quickfix item" })
 map("n", "<leader>q", "<cmd>copen<CR>", { desc = "Open quickfix list" })
 
--- ── Claude ─────────────────────────────────────────────────────────────────
--- Send the visual selection plus a one-line question to a Claude Code CLI
--- running in another tmux pane. The message is formatted as
+-- ── Claude / OpenCode ───────────────────────────────────────────────────────
+-- Send the visual selection plus a one-line question to an agent CLI (Claude
+-- Code, OpenCode) running in another tmux pane. The message is formatted as
 --
 --     path/to/file.lua:12-20
 --     ```lua
@@ -121,64 +121,70 @@ map("n", "<leader>q", "<cmd>copen<CR>", { desc = "Open quickfix list" })
 --
 --     <your prompt>
 --
--- so Claude gets the file/line context along with the code.
+-- so the agent gets the file/line context along with the code.
 --
 -- Requires nvim to be running inside tmux. The destination pane is
--- $CLAUDE_PANE (any tmux target-pane, e.g. "%3" or "session:win.0"); without
+-- $<AGENT>_PANE (any tmux target-pane, e.g. "%3" or "session:win.0"); without
 -- it we fall back to ".+", the next pane in the current window.
 --
 -- Delivery goes through a named tmux buffer rather than `send-keys` so the
--- text arrives as a bracketed paste (-p): Claude's prompt sees the newlines
--- as literal newlines instead of submitting on the first one. `-d` deletes
--- the buffer after pasting. A separate `send-keys Enter` then submits.
-local function ask_claude()
-	if not vim.env.TMUX then
-		return vim.notify("Not inside tmux", vim.log.levels.ERROR)
-	end
-
-	-- capture region while still in visual mode (0.10+ handles v/V/<C-v> correctly)
-	local mode = vim.fn.mode()
-	local lines = vim.fn.getregion(vim.fn.getpos("v"), vim.fn.getpos("."), { type = mode })
-	local srow = math.min(vim.fn.line("v"), vim.fn.line("."))
-	local erow = math.max(vim.fn.line("v"), vim.fn.line("."))
-
-	local file = vim.fn.expand("%:.")
-	local ft = vim.bo.filetype
-	vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "nx", false)
-
-	vim.ui.input({ prompt = "Ask Claude: " }, function(prompt)
-		if not prompt or prompt == "" then
-			return
+-- text arrives as a bracketed paste (-p): the agent's prompt sees the
+-- newlines as literal newlines instead of submitting on the first one. `-d`
+-- deletes the buffer after pasting. A separate `send-keys Enter` submits.
+local function ask_agent(agent)
+	return function()
+		if not vim.env.TMUX then
+			return vim.notify("Not inside tmux", vim.log.levels.ERROR)
 		end
 
-		local msg = string.format(
-			"%s:%d-%d\n```%s\n%s\n```\n\n%s",
-			file ~= "" and file or "[No Name]",
-			srow,
-			erow,
-			ft,
-			table.concat(lines, "\n"),
-			prompt
-		)
+		-- capture region while still in visual mode (0.10+ handles v/V/<C-v> correctly)
+		local mode = vim.fn.mode()
+		local lines = vim.fn.getregion(vim.fn.getpos("v"), vim.fn.getpos("."), { type = mode })
+		local srow = math.min(vim.fn.line("v"), vim.fn.line("."))
+		local erow = math.max(vim.fn.line("v"), vim.fn.line("."))
 
-		local target = vim.env.CLAUDE_PANE or ".+"
-		local function tmux(args, stdin)
-			local r = vim.system(vim.list_extend({ "tmux" }, args), { stdin = stdin }):wait()
-			if r.code ~= 0 then
-				vim.notify("tmux: " .. (r.stderr or ""), vim.log.levels.ERROR)
+		local file = vim.fn.expand("%:.")
+		local ft = vim.bo.filetype
+		vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "nx", false)
+
+		local buffer = "nvim_" .. string.lower(agent)
+		local env_name = string.upper(agent) .. "_PANE"
+
+		vim.ui.input({ prompt = "Ask " .. agent .. ": " }, function(prompt)
+			if not prompt or prompt == "" then
+				return
 			end
-			return r.code == 0
-		end
 
-		-- bracketed paste keeps newlines from submitting early
-		if not tmux({ "load-buffer", "-b", "nvim_claude", "-" }, msg) then
-			return
-		end
-		if not tmux({ "paste-buffer", "-b", "nvim_claude", "-t", target, "-d", "-p" }) then
-			return
-		end
-		tmux({ "send-keys", "-t", target, "Enter" })
-	end)
+			local msg = string.format(
+				"%s:%d-%d\n```%s\n%s\n```\n\n%s",
+				file ~= "" and file or "[No Name]",
+				srow,
+				erow,
+				ft,
+				table.concat(lines, "\n"),
+				prompt
+			)
+
+			local target = vim.env[env_name] or ".+"
+			local function tmux(args, stdin)
+				local r = vim.system(vim.list_extend({ "tmux" }, args), { stdin = stdin }):wait()
+				if r.code ~= 0 then
+					vim.notify("tmux: " .. (r.stderr or ""), vim.log.levels.ERROR)
+				end
+				return r.code == 0
+			end
+
+			-- bracketed paste keeps newlines from submitting early
+			if not tmux({ "load-buffer", "-b", buffer, "-" }, msg) then
+				return
+			end
+			if not tmux({ "paste-buffer", "-b", buffer, "-t", target, "-d", "-p" }) then
+				return
+			end
+			tmux({ "send-keys", "-t", target, "Enter" })
+		end)
+	end
 end
 
-map("x", "<leader>ac", ask_claude, { desc = "Ask Claude about selection" })
+map("x", "<leader>ac", ask_agent("Claude"), { desc = "Ask Claude about selection" })
+map("x", "<leader>ao", ask_agent("OpenCode"), { desc = "Ask OpenCode about selection" })
