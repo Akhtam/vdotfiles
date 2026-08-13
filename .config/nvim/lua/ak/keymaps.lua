@@ -123,14 +123,61 @@ map("n", "<leader>q", "<cmd>copen<CR>", { desc = "Open quickfix list" })
 --
 -- so the agent gets the file/line context along with the code.
 --
--- Requires nvim to be running inside tmux. The destination pane is
--- $<AGENT>_PANE (any tmux target-pane, e.g. "%3" or "session:win.0"); without
--- it we fall back to ".+", the next pane in the current window.
+-- Requires nvim to be running inside tmux. The destination pane is $<AGENT>_PANE
+-- (any tmux target-pane, e.g. "%3" or "session:win.0") when set; otherwise we
+-- go looking for the pane that is actually running that agent — see
+-- find_agent_pane below. Only if that fails do we fall back to ".+", the next
+-- pane in the current window.
 --
 -- Delivery goes through a named tmux buffer rather than `send-keys` so the
 -- text arrives as a bracketed paste (-p): the agent's prompt sees the
 -- newlines as literal newlines instead of submitting on the first one. `-d`
 -- deletes the buffer after pasting. A separate `send-keys Enter` submits.
+-- How to recognise each agent from `tmux list-panes` output. Both agents set a
+-- pane title, but only OpenCode keeps a recognisable process name:
+--
+--   opencode  cmd=opencode   title=OpenCode
+--   claude    cmd=2.1.229    title=◐ Fix Claude default selection in split view
+--
+-- Claude Code renames its process to its own version number, so the version
+-- pattern IS the signature. The title is checked first for both, since it is
+-- the one field the agent sets deliberately.
+local agent_matchers = {
+	claude = function(cmd, title)
+		return title:find("claude", 1, true)
+			or cmd:find("claude", 1, true)
+			or cmd:match("^%d+%.%d+%.%d+$") ~= nil
+	end,
+	opencode = function(cmd, title)
+		return title:find("opencode", 1, true) or cmd:find("opencode", 1, true)
+	end,
+}
+
+-- Find the pane running `agent`, preferring the current window over the rest of
+-- the session over other sessions — so with two agents side by side in this
+-- window you always hit the one you asked for. Returns nil when nothing matches.
+local function find_agent_pane(agent)
+	local matches = agent_matchers[string.lower(agent)]
+	local fmt = "#{pane_id}\t#{window_active}\t#{session_attached}\t#{pane_current_command}\t#{pane_title}"
+	local r = vim.system({ "tmux", "list-panes", "-a", "-F", fmt }):wait()
+	if r.code ~= 0 or not matches then
+		return nil
+	end
+
+	local best, best_rank
+	for line in vim.gsplit(r.stdout or "", "\n", { trimempty = true }) do
+		local id, win_active, sess_attached, cmd, title = line:match("^(%S+)\t(%d)\t(%d)\t([^\t]*)\t(.*)$")
+		-- never target ourselves: $TMUX_PANE is this nvim's own pane
+		if id and id ~= vim.env.TMUX_PANE and matches(string.lower(cmd), string.lower(title)) then
+			local rank = (win_active == "1" and 0 or 1) + (sess_attached == "1" and 0 or 2)
+			if not best_rank or rank < best_rank then
+				best, best_rank = id, rank
+			end
+		end
+	end
+	return best
+end
+
 local function ask_agent(agent)
 	return function()
 		if not vim.env.TMUX then
@@ -165,7 +212,15 @@ local function ask_agent(agent)
 				prompt
 			)
 
-			local target = vim.env[env_name] or ".+"
+			local target = vim.env[env_name] or find_agent_pane(agent)
+			if not target then
+				vim.notify(
+					("No %s pane found; falling back to the next pane. Set $%s to pin one."):format(agent, env_name),
+					vim.log.levels.WARN
+				)
+				target = ".+"
+			end
+
 			local function tmux(args, stdin)
 				local r = vim.system(vim.list_extend({ "tmux" }, args), { stdin = stdin }):wait()
 				if r.code ~= 0 then
