@@ -36,6 +36,7 @@ vim.g.loaded_node_provider = 0
 
 require('ak.options')     -- vim.opt settings; depends on nothing
 require('ak.keymaps')     -- plugin-independent maps only
+require('ak.agent')       -- <leader>ac/ao: ask Claude/OpenCode about the selection
 require('ak.autocmds')    -- editor behaviour; reads options set above
 
 -- Plugins BEFORE lsp AND before treesitter, and this ordering is load-bearing.
