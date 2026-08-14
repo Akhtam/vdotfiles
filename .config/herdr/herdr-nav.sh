@@ -8,7 +8,7 @@
 #
 #   yes -> relay the keystroke into the pane and let Neovim decide whether to
 #          move between its own splits or bounce back out to a herdr pane
-#          (lua/ak/herdr.lua handles that edge case).
+#          (lua/ak/mux.lua handles that edge case).
 #   no  -> just focus the neighbouring herdr pane.
 #
 # WHY WE RELAY alt+h INSTEAD OF ctrl+h

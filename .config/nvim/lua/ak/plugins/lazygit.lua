@@ -3,8 +3,8 @@
 -- The `lazygit` TUI in a floating window, sharing the buffer's repo and cwd.
 -- Provided by snacks.nvim's `lazygit` module (config in plugins/snacks.lua),
 -- which replaced kdheepak/lazygit.nvim — same idea (a thin float around the
--- `lazygit` binary, already installed via Homebrew at 0.64.0), just built on
--- snacks.terminal instead of plenary's floating window.
+-- `lazygit` binary, installed via Homebrew and declared in .config/Brewfile),
+-- just built on snacks.terminal instead of plenary's floating window.
 --
 -- Complements gitsigns rather than overlapping with it: gitsigns is per-hunk
 -- work inside the buffer you're editing (<leader>h…), lazygit is repo-level

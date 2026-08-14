@@ -50,8 +50,8 @@ vim.diagnostic.config({
   -- The 0.11+ table form. The old `vim.fn.sign_define('DiagnosticSignError',…)`
   -- approach still works but is superseded; this is the supported spelling.
   --
-  -- Letters rather than nerd-font glyphs, matching the lualine symbols in
-  -- ui.lua so the gutter and statusline speak the same language.
+  -- Letters rather than nerd-font glyphs: they render in any font, and they
+  -- stay legible in the sign column at the one-cell width it gives them.
   signs = {
     text = {
       [severity.ERROR] = 'E',

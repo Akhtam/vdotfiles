@@ -104,10 +104,22 @@ o.swapfile = false
 o.confirm = true
 
 -- ── Timing ─────────────────────────────────────────────────────────────────
--- Default 4000ms. This drives CursorHold, which gitsigns uses for inline blame
--- and which LSP uses for document highlight. 4 seconds feels broken; 250ms
--- feels live. Low values also mean more frequent swapfile writes — irrelevant
--- here since swapfile is off.
+-- Default 4000ms. This is the CursorHold/CursorHoldI delay. 4 seconds feels
+-- broken; 250ms feels live. Low values also mean more frequent swapfile writes
+-- — irrelevant here since swapfile is off.
+--
+-- Worth being honest that nothing in this config currently depends on the
+-- value. Both things that used to are now driven by their own timers:
+--
+--   reference highlighting  snacks' `words` module, CursorMoved + its own
+--                           200ms debounce (plugins/snacks.lua). lsp.lua used
+--                           to hand-roll this on CursorHold and no longer does.
+--   gitsigns inline blame   current_line_blame_opts.delay = 500, set
+--                           explicitly in plugins/gitsigns.lua precisely so it
+--                           does NOT inherit this value.
+--
+-- It stays because CursorHold is a generic event any future plugin may use,
+-- and 4s would be the wrong default when one does.
 o.updatetime = 250
 
 -- How long to wait for a multi-key mapping to complete. Default 1000ms is a

@@ -5,7 +5,7 @@
 -- Exactly two things get asked of the terminal multiplexer from inside Neovim:
 --
 --   "move focus to the pane in <direction>"   — the <C-h/j/k/l> maps
---   "where is the pane running <agent>"       — <leader>ac / <leader>ao, ak/agent.lua
+--   "get this message to <agent>"             — <leader>ac / <leader>ao, ak/agent.lua
 --
 -- Both are answered differently under tmux and under herdr, and each answer
 -- used to carry its own copy of "which multiplexer am I in": plugins/tmux.lua
@@ -19,22 +19,44 @@
 --
 -- ── Interface ──────────────────────────────────────────────────────────────
 --
---   M.detect(env)   -> 'herdr' | 'tmux' | nil   which multiplexer owns this pane
---   M.current()     -> the adapter for this pane
---   M.backends(env) -> adapters to try for agent delivery, nearest first
---   M.setup()       -> apply policy, bind the navigation keys
+--   M.detect(env)                    -> 'herdr' | 'tmux' | nil  which multiplexer owns this pane
+--   M.reachable(env)                 -> is there any multiplexer to deliver through?
+--   M.deliver(agent, msg, backends)  -> ok, err   get msg to agent, wherever it is
+--   M.setup()                        -> apply policy, bind the navigation keys
 --
--- detect() and backends() take an optional env table and default to vim.env.
--- That parameter is not decoration: it is the only way to exercise detection
--- without a live multiplexer, and the way both were checked when this module
--- was written —
+-- The three queries take an optional trailing table — an env for the first two,
+-- a backend list for deliver — defaulting to the live process. (setup() takes
+-- none; it acts on this process by definition.) That parameter is not
+-- decoration: it is the only way to exercise this module without a live
+-- multiplexer, and the way each was checked when it was written —
 --
---   :lua =require('ak.mux').detect({ TMUX = '/tmp/x' })            -> 'tmux'
---   :lua =#require('ak.mux').backends({ HERDR_ENV = '1' })         -> 1
+--   :lua =require('ak.mux').detect({ TMUX = '/tmp/x' })     -> 'tmux'
+--   :lua =require('ak.mux').reachable({ HERDR_ENV = '1' })  -> true
 --
--- Focus is deliberately NOT part of this interface. The four keymaps in setup()
--- are its only caller, and they hold the adapter already, so a public
--- focus(dir) would exist purely to be re-looked-up on every keypress.
+-- deliver() needs adapters rather than an env, so its fakes are a little more
+-- than a table literal — each needs find/send/fallback:
+--
+--   :lua =require('ak.mux').deliver('claude', 'hi', {
+--          { find = function() return 'p1' end,
+--            send = function() print('sent') return true end } })   -> true
+--
+-- One tier still reads the live process: $<AGENT>_PANE is looked up via
+-- vim.env, not the backend list, so exercising the pinned tier means setting
+-- vim.env.CLAUDE_PANE first. Everything else is driven by the argument.
+--
+-- What is deliberately NOT in this interface, and why:
+--
+--   focus(dir)   the four keymaps in setup() are its only caller and they hold
+--                the adapter already, so a public focus() would exist purely to
+--                be re-looked-up on every keypress.
+--
+--   backends()   handing out the adapter list makes the adapter TABLE public,
+--                and a caller that holds adapters inevitably reimplements the
+--                delivery ladder against them — which is exactly what
+--                ak/agent.lua used to do: it indexed backends[1], read
+--                .fallback, and called .find/.send itself. deliver() exists so
+--                that the adapter fields have exactly one consumer, in this
+--                file.
 --
 -- ── Adapters ───────────────────────────────────────────────────────────────
 -- Each multiplexer supplies one table:
@@ -45,6 +67,10 @@
 --   find(agent)                     -> pane target, or nil
 --   send(agent, target, msg, quiet) -> ok; notifies unless quiet
 --   fallback                        -> target to guess at, or nil for "don't"
+--   relay_chord                     -> optional. true when the multiplexer
+--                                      relays <M-h/j/k/l> into the pane and
+--                                      setup() must bind a landing pad for it.
+--                                      herdr only; see its adapter.
 --
 -- owns_pane and reachable are deliberately different tests, not an oversight:
 -- Neovim can run in a tmux session nested inside a herdr pane. tmux owns the
@@ -54,6 +80,11 @@
 -- `agent` is passed to send because tmux needs it to name its paste buffer.
 
 local M = {}
+
+-- The one condition a caller may want to test for itself before doing
+-- expensive or interactive work, so the wording lives in one place rather than
+-- once here and once in ak/agent.lua. deliver() returns this as its `err`.
+M.no_backend_error = 'Not inside tmux or herdr'
 
 -- ── Policy ─────────────────────────────────────────────────────────────────
 -- Stated once, here. Under tmux these become vim.g flags that
@@ -376,7 +407,7 @@ local adapters = { herdr_adapter, tmux_adapter }
 --- multiplexer, so it consumes ctrl+h first, and herdr-nav.sh sees `tmux` as
 --- the pane's foreground process, not nvim, so it focuses the neighbouring
 --- herdr pane and the keystroke never reaches Neovim at all. Agent delivery
---- still works in that setup, which is what backends() is for.
+--- still works in that setup, which is what backends_for() is for.
 --- @param env table
 --- @return table adapter never nil — falls back to none_adapter
 local function adapter_for(env)
@@ -388,19 +419,6 @@ local function adapter_for(env)
   return none_adapter
 end
 
---- @param env table|nil defaults to vim.env
---- @return string|nil 'herdr', 'tmux', or nil for a bare terminal
-function M.detect(env)
-  local adapter = adapter_for(env or vim.env)
-  return adapter ~= none_adapter and adapter.name or nil
-end
-
---- The adapter for the multiplexer that owns this pane.
---- @return table
-function M.current()
-  return adapter_for(vim.env)
-end
-
 --- Adapters worth trying for agent delivery, nearest first.
 ---
 --- A LIST rather than a single pick because "inside herdr" doesn't prove the
@@ -408,10 +426,11 @@ end
 --- pane, with claude/opencode in tmux panes. herdr is asked first, and when it
 --- has nothing we fall through instead of hard-failing a setup that worked
 --- before.
---- @param env table|nil defaults to vim.env
+---
+--- Private: see the note on backends() at the top of this file.
+--- @param env table
 --- @return table[]
-function M.backends(env)
-  env = env or vim.env
+local function backends_for(env)
   local list = {}
   for _, adapter in ipairs(adapters) do
     if adapter.reachable(env) then
@@ -419,6 +438,108 @@ function M.backends(env)
     end
   end
   return list
+end
+
+--- @param env table|nil defaults to vim.env
+--- @return string|nil 'herdr', 'tmux', or nil for a bare terminal
+function M.detect(env)
+  local adapter = adapter_for(env or vim.env)
+  return adapter ~= none_adapter and adapter.name or nil
+end
+
+--- Is there any multiplexer we could deliver a message through?
+---
+--- Exists so a caller can bail BEFORE doing expensive or interactive work —
+--- ak/agent.lua checks this before prompting you for a question, rather than
+--- taking the question and then admitting it has nowhere to send it.
+---
+--- Not the same question as detect(): a bare `nil` from detect means no
+--- multiplexer owns this pane, while this asks whether one is within reach at
+--- all. The case where they genuinely diverge is $HERDR_ENV set with neither
+--- $HERDR_PANE_ID nor $TMUX — detect() -> nil, reachable() -> true. The full
+--- matrix, checked:
+---
+---   TMUX + HERDR_ENV + HERDR_PANE_ID  detect 'herdr'  reachable true
+---   TMUX + HERDR_ENV                  detect 'tmux'   reachable true
+---   HERDR_ENV                         detect nil      reachable TRUE   <- diverges
+---   (nothing)                         detect nil      reachable false
+--- @param env table|nil defaults to vim.env
+--- @return boolean
+function M.reachable(env)
+  return #backends_for(env or vim.env) > 0
+end
+
+-- ── Delivery ───────────────────────────────────────────────────────────────
+-- The ladder that gets a message to an agent, and the only consumer of an
+-- adapter's find/send/fallback fields.
+--
+-- $<AGENT>_PANE (CLAUDE_PANE, OPENCODE_PANE) pins a destination pane: a tmux
+-- target-pane ("%3", "session:win.0") or a herdr pane id ("wF:p6"). The two
+-- formats aren't interchangeable, so a pinned target a backend rejects is not
+-- fatal — we move on rather than fail on a stale export left in a shell
+-- profile. Unset, we go straight to discovery.
+
+--- Get `msg` to `agent`, wherever it is running.
+---
+--- Three tiers, tried in order: a pinned pane, then discovery, then a guess.
+---
+--- @param agent string 'Claude', 'OpenCode' — matched case-insensitively
+--- @param msg string
+--- @param backends table[]|nil adapters to try, nearest first; defaults to the
+---        ones reachable from this process. Pass fakes to exercise the ladder
+---        without a multiplexer.
+--- @return boolean ok
+--- @return string|nil err a message to show; nil when the failure was already
+---         reported at the point it happened (an adapter notifies its own CLI
+---         errors, with the actual stderr, which beats anything we could say
+---         about it here)
+function M.deliver(agent, msg, backends)
+  backends = backends or backends_for(vim.env)
+  if #backends == 0 then
+    return false, M.no_backend_error
+  end
+
+  local env_name = string.upper(agent) .. '_PANE'
+  local pinned = vim.env[env_name]
+
+  -- EVERY backend gets a quiet try at the pinned target, not just the nearest
+  -- one: with nvim in a tmux session inside a herdr pane both are reachable,
+  -- and a $CLAUDE_PANE holding a tmux id is only meaningful to the tmux
+  -- adapter — which is never backends[1], since herdr sorts first. Quiet,
+  -- because a rejection here is expected and handled, not an error to put in
+  -- front of you.
+  if pinned then
+    for _, backend in ipairs(backends) do
+      if backend.send(agent, pinned, msg, true) then
+        return true
+      end
+    end
+    vim.notify(
+      ('$%s (%s) was rejected; looking for a %s pane instead.'):format(env_name, pinned, agent),
+      vim.log.levels.WARN
+    )
+  end
+
+  for _, backend in ipairs(backends) do
+    local target = backend.find(agent)
+    if target then
+      return backend.send(agent, target, msg)
+    end
+  end
+
+  -- Nothing found. tmux can still guess "the pane next door"; herdr's
+  -- `agent prompt` needs a real agent target, so it offers no guess.
+  for _, backend in ipairs(backends) do
+    if backend.fallback then
+      vim.notify(
+        ('No %s pane found; falling back to the next pane. Set $%s to pin one.'):format(agent, env_name),
+        vim.log.levels.WARN
+      )
+      return backend.send(agent, backend.fallback, msg)
+    end
+  end
+
+  return false, ('No %s agent pane found. Set $%s to pin one.'):format(agent, env_name)
 end
 
 -- ── Setup ──────────────────────────────────────────────────────────────────
@@ -445,7 +566,7 @@ function M.setup()
   vim.g.tmux_navigator_no_wrap = M.policy.no_wrap and 1 or 0
   vim.g.tmux_navigator_disable_when_zoomed = M.policy.disable_when_zoomed and 1 or 0
 
-  local backend = M.current()
+  local backend = adapter_for(vim.env)
   local map = vim.keymap.set
 
   -- Normal mode only.
@@ -464,13 +585,14 @@ function M.setup()
 
     map('n', '<C-' .. dir.wincmd .. '>', handler, { desc = desc })
 
-    -- Under herdr, <M-h/j/k/l> is what actually fires in normal use — it is the
-    -- chord herdr-nav.sh relays in. You cannot type it yourself: per the note
-    -- in keymaps.lua, Ghostty runs with macos-option-as-alt unset, so Option+h
-    -- types `˙` and Neovim never sees <M-h>. That doesn't matter, because
-    -- herdr's send-keys writes the chord straight into the pane's PTY, which
-    -- never passes through Ghostty's Option handling. These are the relay's
-    -- landing pad, and nothing else.
+    -- Under herdr, <M-h/j/k/l> is what actually fires in normal use — it is
+    -- the chord herdr-nav.sh relays in. herdr's send-keys writes it straight
+    -- into the pane's PTY, so the relay works regardless of how the outer
+    -- terminal treats Option; that is why this landing pad predates
+    -- `macos-option-as-alt = left` in ghostty/config and does not depend on it.
+    --
+    -- With that option now set, left Option+h ALSO reaches Neovim as <M-h> and
+    -- lands here. Same handler, same result — you just get a second way in.
     if backend.relay_chord then
       map('n', '<M-' .. dir.wincmd .. '>', handler, { desc = desc })
     end

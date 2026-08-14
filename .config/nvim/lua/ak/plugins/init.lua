@@ -21,8 +21,15 @@
 -- the runtimepath with nothing configuring them, behind a commented-out require
 -- nobody could see from the spec.
 --
--- Order still matters in one place: the list is walked top to bottom, and
--- tokyonight is first so the colorscheme is applied before anything draws.
+-- Order matters in two places, both because the list is walked top to bottom:
+--
+--   tokyonight is FIRST, so the colorscheme is applied before anything draws.
+--
+--   nvim-autopairs comes before blink.cmp. blink binds <A-e> as
+--   `{ 'hide', 'fallback' }`, and its fallback is whatever <A-e> already meant
+--   — autopairs' fast_wrap. Load blink first and it captures nothing, so
+--   <A-e> stops wrapping once the completion menu is closed. See the note in
+--   plugins/autopairs.lua.
 --
 -- Managing plugins:
 --   :lua vim.pack.update()              fetch + review + confirm with :w
@@ -263,9 +270,20 @@ local spec = {
   -- removing a plugin:
   --
   --   The four clones are still in ~/.local/share/nvim/site/pack/core/opt/ and
-  --   still pinned in nvim-pack-lock.json. vim.pack does not garbage-collect —
-  --   `:lua vim.pack.del({ 'nvim-dap', 'nvim-dap-ui', 'nvim-dap-virtual-text',
-  --   'nvim-dap-ruby' })` is what actually removes them.
+  --   still pinned in nvim-pack-lock.json. vim.pack does not garbage-collect.
+  --   They are not alone in that: every plugin this config has ever replaced is
+  --   still on disk and in the lockfile. The full orphan list today, none of
+  --   which appears in the spec above —
+  --
+  --     nvim-dap, nvim-dap-ui, nvim-dap-virtual-text, nvim-dap-ruby
+  --     telescope.nvim, telescope-fzf-native.nvim   (-> snacks picker)
+  --     nvim-tree.lua                               (-> snacks explorer)
+  --     nvim-notify                                 (-> snacks notifier)
+  --     lazygit.nvim                                (-> snacks lazygit)
+  --
+  --   `:lua vim.pack.del({ ... })` with those names is what actually removes
+  --   them. Harmless to leave — nothing puts them on the runtimepath — but they
+  --   make the lockfile a poor answer to "what is installed".
   --
   --   While commented out they are invisible to the loader, so nothing warns
   --   about them. Uncommenting brings the startup warning back, which is the

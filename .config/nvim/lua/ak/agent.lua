@@ -16,28 +16,25 @@
 -- so the agent gets the file/line context along with the code.
 --
 -- This module lives outside keymaps.lua for the same reason a plugin's maps do:
--- everything the two keys need — message formatting, delivery policy — is here,
--- next to the bindings it backs. keymaps.lua is for maps whose whole
--- implementation is one <cmd> string.
+-- the implementation behind the two keys — capturing the selection, formatting
+-- the message — is here, next to the bindings it backs. keymaps.lua is for maps
+-- whose whole implementation is one <cmd> string.
 --
 -- ── The multiplexer seam ───────────────────────────────────────────────────
--- Pane discovery and delivery are NOT here. They live in ak/mux.lua, which owns
--- everything multiplexer-shaped in this config — the same module the
--- <C-h/j/k/l> navigation maps go through. `mux.backends()` hands back the
--- adapters worth trying, nearest first, each exposing:
+-- Nothing multiplexer-shaped is here. Finding the agent's pane, choosing
+-- between a pinned target and discovery and a guess, and speaking tmux or
+-- herdr to actually deliver — all of it is behind ak/mux.lua, the same module
+-- the <C-h/j/k/l> navigation maps go through. Two calls is the whole seam:
 --
---   find(agent)                     -> pane target, or nil
---   send(agent, target, msg, quiet) -> ok; notifies unless quiet
---   fallback                        -> target to guess at, or nil for "don't"
+--   mux.reachable()          is there a multiplexer to deliver through?
+--   mux.deliver(agent, msg)  -> ok, err
 --
--- What stays here is the delivery POLICY built on top of that: try a pinned
--- pane, then discovery, then a guess.
+-- It used to be more, and that was the bug: this file held backends[1], read
+-- .fallback off an adapter, and called .find/.send itself, so the delivery
+-- ladder lived here while every fact it reasoned about lived there. Adding a
+-- third multiplexer meant editing both files.
 --
--- $<AGENT>_PANE (CLAUDE_PANE, OPENCODE_PANE) pins a destination pane: a tmux
--- target-pane ("%3", "session:win.0") or a herdr pane id ("wF:p6"). The two
--- formats aren't interchangeable, so a pinned target that the active backend
--- rejects is not fatal — we fall through to discovery rather than fail on a
--- stale export left in a shell profile. Unset, we go straight to discovery.
+-- What is genuinely this module's own: what a message to an agent LOOKS like.
 
 local mux = require("ak.mux")
 
@@ -47,11 +44,14 @@ local M = {}
 -- Call from visual mode: prompts for a question, then delivers selection +
 -- question to `agent` ("Claude", "OpenCode" — matched case-insensitively).
 function M.ask(agent)
-	-- Resolved once and used by all three delivery attempts below, rather than
-	-- re-asked per attempt: the answer cannot change inside one keystroke.
-	local backends = mux.backends()
-	if #backends == 0 then
-		return vim.notify("Not inside tmux or herdr", vim.log.levels.ERROR)
+	-- Checked BEFORE prompting, not at delivery time: taking your question and
+	-- only then admitting there is nowhere to send it wastes the typing.
+	--
+	-- deliver() checks this too and would return the same message, so the text
+	-- is mux's to own — asking for it here rather than restating it keeps the
+	-- two paths from drifting into two different wordings of one condition.
+	if not mux.reachable() then
+		return vim.notify(mux.no_backend_error, vim.log.levels.ERROR)
 	end
 
 	-- capture region while still in visual mode (0.10+ handles v/V/<C-v> correctly)
@@ -63,8 +63,6 @@ function M.ask(agent)
 	local file = vim.fn.expand("%:.")
 	local ft = vim.bo.filetype
 	vim.api.nvim_feedkeys(vim.keycode("<Esc>"), "nx", false)
-
-	local env_name = string.upper(agent) .. "_PANE"
 
 	vim.ui.input({ prompt = "Ask " .. agent .. ": " }, function(prompt)
 		if not prompt or prompt == "" then
@@ -81,40 +79,12 @@ function M.ask(agent)
 			prompt
 		)
 
-		-- A pinned pane is a hint, not a contract: it may be in the other
-		-- multiplexer's id format. Try it quietly, and on rejection carry
-		-- on to discovery rather than surfacing a raw CLI error.
-		local pinned = vim.env[env_name]
-		if pinned and backends[1].send(agent, pinned, msg, true) then
-			return
+		-- err is nil when mux already reported the failure itself, with the
+		-- multiplexer's own stderr — better than anything we could add here.
+		local ok, err = mux.deliver(agent, msg)
+		if not ok and err then
+			vim.notify(err, vim.log.levels.ERROR)
 		end
-		if pinned then
-			vim.notify(
-				("$%s (%s) was rejected; looking for a %s pane instead."):format(env_name, pinned, agent),
-				vim.log.levels.WARN
-			)
-		end
-
-		for _, backend in ipairs(backends) do
-			local target = backend.find(agent)
-			if target then
-				return backend.send(agent, target, msg)
-			end
-		end
-
-		-- Nothing found. tmux can still guess "the pane next door"; herdr's
-		-- `agent prompt` needs a real agent target, so it offers no guess.
-		for _, backend in ipairs(backends) do
-			if backend.fallback then
-				vim.notify(
-					("No %s pane found; falling back to the next pane. Set $%s to pin one."):format(agent, env_name),
-					vim.log.levels.WARN
-				)
-				return backend.send(agent, backend.fallback, msg)
-			end
-		end
-
-		vim.notify(("No %s agent pane found. Set $%s to pin one."):format(agent, env_name), vim.log.levels.ERROR)
 	end)
 end
 

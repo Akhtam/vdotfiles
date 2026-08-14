@@ -14,8 +14,8 @@
 --      (`![]()`) or `<img>` tag — rendered as you scroll past it.
 --
 -- REQUIRES ImageMagick (the `magick` CLI) to decode/convert source images
--- before handing them to the terminal. Not installed yet on this machine —
--- run `brew install imagemagick` or images will silently fail to render.
+-- before handing them to the terminal. Installed, and declared in
+-- .config/Brewfile; without it images silently fail to render.
 --
 -- ── notifier ───────────────────────────────────────────────────────────────
 -- Replaces nvim-notify as noice's toast backend. noice's "notify" view tries
@@ -191,9 +191,8 @@ require('snacks').setup({
       --
       -- <C-h> was telescope's `file_split`; snacks' equivalent action is
       -- `edit_split`. <A-k>/<A-j> move the selection, <A-f>/<A-b> scroll the
-      -- preview — same four Alt keys as before, same Ghostty caveat: they
-      -- need `macos-option-as-alt = left` in ghostty/config or Option emits
-      -- ˚/∆/ƒ/∫ and Neovim never sees an Alt modifier.
+      -- preview — same four Alt keys as before. Left Option only; that's
+      -- settled in ghostty/config, not here.
       input = {
         keys = {
           ['<C-h>'] = { 'edit_split', mode = { 'i', 'n' } },

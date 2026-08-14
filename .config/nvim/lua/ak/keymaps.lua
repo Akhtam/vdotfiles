@@ -27,7 +27,7 @@ map("n", "<leader>sx", "<cmd>close<CR>", { desc = "Close current split" })
 -- <C-h/j/k/l> split navigation lives in ak/mux.lua, not here. Those four keys
 -- are a superset of <C-w>h/j/k/l: identical between Neovim splits, and
 -- additionally crossing into the neighbouring tmux/herdr pane at the window
--- edge. Which of those two it talks to is decided once, by ak.mux.detect().
+-- edge. Which of those two it talks to is decided once, inside ak.mux.setup().
 --
 -- Defining them here as well would just shadow, or be shadowed by, that
 -- module depending on load order — so they're defined once, next to the
@@ -46,17 +46,10 @@ map("n", "<leader>Tf", "<cmd>tabnew %<CR>", { desc = "Open current buffer in new
 map("n", "<leader>nr", "<cmd>set relativenumber!<CR>", { desc = "Toggle relative number" })
 
 -- ── Insert-mode cursor movement ────────────────────────────────────────────
--- ⚠️  THESE WILL NOT FIRE IN GHOSTTY AS CURRENTLY CONFIGURED.
---
--- `ghostty +show-config --default` reports `macos-option-as-alt =` (unset,
--- i.e. off), which means the Option key emits macOS special characters rather
--- than an Alt/Meta modifier: Option+h sends `˙`, Option+j sends `∆`,
--- Option+k sends `˚`, Option+l sends `¬`. Neovim never sees <A-h> at all.
---
--- Fix: add ONE line to ~/.dotfiles/.config/ghostty/config —
---     macos-option-as-alt = left
--- Left Option becomes Alt (these maps work), right Option keeps typing
--- special characters (é, #, …). Using `true` would sacrifice both keys.
+-- LEFT Option only. Whether Option reaches Neovim as Alt at all is a terminal
+-- decision, not a Neovim one, and it is made once in
+-- ~/.dotfiles/.config/ghostty/config (`macos-option-as-alt = left`) — right
+-- Option still types é, #, and friends.
 map("i", "<A-h>", "<Left>", { noremap = true })
 map("i", "<A-j>", "<Down>", { noremap = true })
 map("i", "<A-k>", "<Up>", { noremap = true })

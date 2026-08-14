@@ -136,7 +136,7 @@ focus_agent = "alt+1..9"  # direct alt+1..9 focuses agent rows
 # focuses the neighbouring pane. That check is the thing vim-tmux-navigator's
 # tmux half provides and herdr has no plugin for.
 #
-# The Neovim half lives in ~/.dotfiles/.config/nvim/lua/ak/herdr.lua.
+# The Neovim half lives in ~/.dotfiles/.config/nvim/lua/ak/mux.lua.
 # The script relays alt+h/j/k/l — deliberately NOT the bound chord — so a relay
 # can never retrigger these bindings. Leave alt+h/j/k/l unbound here.
 #

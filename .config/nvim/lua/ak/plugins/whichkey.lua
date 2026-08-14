@@ -1,8 +1,9 @@
 -- lua/ak/plugins/whichkey.lua
 --
 -- Shows a popup of possible completions after a partial keymap. With the
--- number of <leader> groups this config now has (f, e, d, t, s, n, m, T),
--- it's the difference between remembering them and rediscovering them.
+-- number of <leader> groups this config now has — thirteen, listed in the
+-- add() call below — it's the difference between remembering them and
+-- rediscovering them.
 
 require('which-key').setup({
   -- Defaults are good. Group labels are added below rather than here, so they

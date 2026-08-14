@@ -21,10 +21,13 @@
 -- lua/ak/treesitter.lua.
 --
 -- NOT wired up: the `strategy = 'dap'` option that would step into a failing
--- test with a debugger. That needs lua/ak/plugins/dap.lua, which doesn't
--- exist yet (nvim-dap is on the vim.pack list but its require is commented
--- out in plugins/init.lua, same as this file was). Add `strategy = 'dap'` to
--- the run.run() calls below once that file exists.
+-- test with a debugger. That needs lua/ak/plugins/dap.lua, which doesn't exist
+-- — and because it doesn't, the four nvim-dap entries are commented OUT of the
+-- spec in plugins/init.lua, so nothing puts them on the runtimepath. The clones
+-- are still on disk from when they were active (vim.pack does not
+-- garbage-collect — see the orphan list in plugins/init.lua), so this is a
+-- wiring gap, not a missing download. Uncomment those entries, write that file,
+-- then add `strategy = 'dap'` to the run.run() calls below.
 
 require('neotest').setup({
   adapters = {

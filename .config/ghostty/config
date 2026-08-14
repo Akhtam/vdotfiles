@@ -2,3 +2,16 @@ theme = TokyoNight Moon
 font-family = JetBrains Mono NL
 font-style-bold = false
 
+# Left Option sends Alt/Meta; right Option keeps typing macOS special characters
+# (é, #, …). The default here is unset, which means NEITHER key sends Alt —
+# Option+h types `˙`, Option+j types `∆` — and Neovim never sees <A-h> at all.
+#
+# This is load-bearing for the config in ~/.dotfiles/.config/nvim:
+#   keymaps.lua   <A-h/j/k/l>       insert-mode cursor movement
+#   snacks.lua    <A-j/k/f/b>       picker list movement and preview scroll
+#   blink.lua     <A-j/k/b/f/e/Sp>  completion menu
+#   autopairs.lua <A-e>             fast_wrap
+#
+# `left` rather than `true` on purpose: `true` would sacrifice both Option keys
+# and with them every special character you can currently type.
+macos-option-as-alt = left

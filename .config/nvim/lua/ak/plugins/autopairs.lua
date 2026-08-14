@@ -60,10 +60,12 @@ npairs.setup({
   -- <A-e> in insert mode wraps the next word in the pair you're on. Genuinely
   -- useful for `foo` -> `(foo)` without leaving insert.
   --
-  -- NOTE: this needs the Alt key to reach Neovim. That depends on Ghostty's
-  -- `macos-option-as-alt` setting — with it unset, Option emits `´` rather
-  -- than <A-e> and this binding is inert. The same applies to the <A-j>/<A-k>
-  -- picker mappings and the <A-h/j/k/l> insert-mode arrows in keymaps.lua.
+  -- Left Option only; settled in ghostty/config, not here.
+  --
+  -- Shared with blink.cmp, which binds <A-e> to `{ 'hide', 'fallback' }` — so
+  -- with the completion menu open the key dismisses it, and otherwise falls
+  -- through to fast_wrap. That works because blink captures whatever <A-e>
+  -- already meant, and plugins/init.lua loads this file before blink's.
   fast_wrap = {
     map = '<A-e>',
     chars = { '{', '[', '(', '"', "'", '`' },
