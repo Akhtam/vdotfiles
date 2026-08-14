@@ -24,7 +24,8 @@ map("n", "<leader>sh", "<C-w>s", { desc = "Split window horizontally" })
 map("n", "<leader>se", "<C-w>=", { desc = "Make splits equal size" })
 map("n", "<leader>sx", "<cmd>close<CR>", { desc = "Close current split" })
 
--- <C-h/j/k/l> split navigation lives in plugins/tmux.lua, not here.
+-- <C-h/j/k/l> split navigation lives in plugins/tmux.lua and ak/herdr.lua,
+-- not here. Whichever multiplexer you are actually inside binds them last.
 --
 -- vim-tmux-navigator binds those four keys to a superset of <C-w>h/j/k/l:
 -- identical between Neovim splits, and additionally crossing into tmux panes

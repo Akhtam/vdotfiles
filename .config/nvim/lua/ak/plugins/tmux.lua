@@ -59,6 +59,12 @@ map('n', '<C-j>', '<cmd>TmuxNavigateDown<CR>', { desc = 'Navigate down (split or
 map('n', '<C-k>', '<cmd>TmuxNavigateUp<CR>', { desc = 'Navigate up (split or tmux pane)' })
 map('n', '<C-l>', '<cmd>TmuxNavigateRight<CR>', { desc = 'Navigate right (split or tmux pane)' })
 
+-- Under herdr these four maps are overwritten by lua/ak/herdr.lua, which
+-- init.lua requires after this file. herdr has no navigator plugin, so it
+-- inverts the protocol: Neovim owns the keys and calls out to `herdr pane
+-- focus` only at the split edge. Nothing here needs to change for that — this
+-- file simply loses the race by design when $HERDR_PANE_ID is set.
+--
 -- No conflicts with these, checked:
 --   blink.cmp binds <C-h>/<C-l> for snippet jumps — INSERT mode only.
 --   the snacks picker binds <C-h> to edit_split — buffer-local inside the

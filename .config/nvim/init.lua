@@ -54,5 +54,12 @@ require('ak.plugins')
 -- module used to sit above, back when it was core-only and had no dependency.
 require('ak.treesitter')
 
+-- herdr AFTER plugins, and this ordering is load-bearing too. This module
+-- rebinds <C-h/j/k/l> to split-or-herdr-pane navigation, so it must land after
+-- ak.plugins.tmux has bound those same four keys to the tmux variant. It
+-- no-ops entirely when $HERDR_PANE_ID is absent, so under tmux or a bare
+-- terminal the tmux mappings survive untouched.
+require('ak.herdr')
+
 require('ak.diagnostics') -- vim.diagnostic.config; independent of any client
 require('ak.lsp')         -- vim.lsp.config defaults, enable list, LspAttach maps

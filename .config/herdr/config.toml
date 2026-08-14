@@ -128,6 +128,43 @@ focus_agent = "alt+1..9"  # direct alt+1..9 focuses agent rows
 # width = "80%"
 # height = "80%"
 
+# ── Seamless ctrl+h/j/k/l navigation between panes AND Neovim splits ────────
+# herdr keybindings are unconditional: binding focus_pane_left to ctrl+h would
+# swallow the key before Neovim ever saw it, making Neovim splits unreachable.
+# So instead of focus_pane_*, these four run herdr-nav.sh, which checks whether
+# the focused pane is running (n)vim and either relays the keystroke into it or
+# focuses the neighbouring pane. That check is the thing vim-tmux-navigator's
+# tmux half provides and herdr has no plugin for.
+#
+# The Neovim half lives in ~/.dotfiles/.config/nvim/lua/ak/herdr.lua.
+# The script relays alt+h/j/k/l — deliberately NOT the bound chord — so a relay
+# can never retrigger these bindings. Leave alt+h/j/k/l unbound here.
+#
+# Direction is the only argument: herdr-nav.sh derives the alt chord it relays
+# from it, so these four blocks cannot drift out of sync with each other.
+#
+# Note focus_pane_* above stay at their prefix+h/j/k/l defaults; they still work
+# and do not conflict.
+[[keys.command]]
+key = "ctrl+h"
+type = "shell"
+command = "$HOME/.dotfiles/.config/herdr/herdr-nav.sh left"
+
+[[keys.command]]
+key = "ctrl+j"
+type = "shell"
+command = "$HOME/.dotfiles/.config/herdr/herdr-nav.sh down"
+
+[[keys.command]]
+key = "ctrl+k"
+type = "shell"
+command = "$HOME/.dotfiles/.config/herdr/herdr-nav.sh up"
+
+[[keys.command]]
+key = "ctrl+l"
+type = "shell"
+command = "$HOME/.dotfiles/.config/herdr/herdr-nav.sh right"
+
 # Legacy indexed shortcut config is still parsed for compatibility.
 # Prefer switch_tab, switch_workspace, and focus_agent for new configs.
 # [keys.indexed]
