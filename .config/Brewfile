@@ -1,21 +1,66 @@
+tap "anomalyco/tap"
 tap "homebrew/bundle"
-tap "jesseduffield/lazygit"
+tap "homebrew/services"
+tap "mongodb/brew"
+# Extendable version manager with support for Ruby, Node.js, Erlang & more
+brew "asdf"
+# Clone of cat(1) with syntax highlighting and Git integration
 brew "bat"
+# Simple, fast and user-friendly alternative to find
 brew "fd"
+# Command-line fuzzy finder written in Go
 brew "fzf"
+# GNU awk utility
+brew "gawk"
+# GitHub command-line tool
+brew "gh"
+# Syntax-highlighting pager for git and diff output
 brew "git-delta"
+# GNU Privacy Guard (OpenPGP)
+brew "gnupg"
+# Agent multiplexer that lives in your terminal
+brew "herdr"
+# Tools and libraries to manipulate images in select formats
+brew "imagemagick"
+# Simple terminal UI for git commands
+brew "lazygit"
+# YAML Parser
+brew "libyaml"
+# Clone of ls with colorful output, file type icons, and more
 brew "lsd"
+# Language Server for the Lua language
+brew "lua-language-server"
+# Package manager for the Lua programming language
 brew "luarocks"
+# MongoDB Shell to connect, configure, query, and work with your MongoDB database
+brew "mongosh"
+# Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
-brew "postgresql@14"
-brew "rbenv"
+# Fast, disk space efficient package manager
+brew "pnpm"
+# Object-relational database system
+brew "postgresql@18", link: true
+# Persistent key-value database, with built-in net interface
+brew "redis", restart_service: :changed
+# Search tool like grep and The Silver Searcher
 brew "ripgrep"
+# Static analysis and lint tool, for (ba)sh scripts
+brew "shellcheck"
+# Organize software neatly under a single directory tree (e.g. /usr/local)
 brew "stow"
+# Opinionated Lua code formatter
+brew "stylua"
+# Terminal multiplexer
 brew "tmux"
+# Parser generator tool
+brew "tree-sitter-cli"
+# Internet file retriever
 brew "wget"
-brew "jesseduffield/lazygit/lazygit"
+# The AI coding agent built for the terminal.
+brew "anomalyco/tap/opencode", trusted: true
 cask "font-jetbrains-mono"
-vscode "castwide.solargraph"
+vscode "bierner.markdown-mermaid"
+vscode "catppuccin.catppuccin-vsc"
 vscode "dbaeumer.vscode-eslint"
 vscode "dsznajder.es7-react-js-snippets"
 vscode "eamodio.gitlens"
@@ -29,4 +74,3 @@ vscode "pkief.material-icon-theme"
 vscode "shopify.ruby-extensions-pack"
 vscode "shopify.ruby-lsp"
 vscode "sorbet.sorbet-vscode-extension"
-vscode "zhuangtongfa.material-theme"
