@@ -16,19 +16,22 @@
 -- so the agent gets the file/line context along with the code.
 --
 -- This module lives outside keymaps.lua for the same reason a plugin's maps do:
--- everything the two keys need — pane discovery, two multiplexer protocols,
--- message formatting — is here, next to the bindings it backs. keymaps.lua is
--- for maps whose whole implementation is one <cmd> string.
+-- everything the two keys need — message formatting, delivery policy — is here,
+-- next to the bindings it backs. keymaps.lua is for maps whose whole
+-- implementation is one <cmd> string.
 --
 -- ── The multiplexer seam ───────────────────────────────────────────────────
--- Works under either multiplexer: herdr (detected via $HERDR_ENV) is preferred
--- when present, tmux otherwise. Each backend below exposes the same interface:
+-- Pane discovery and delivery are NOT here. They live in ak/mux.lua, which owns
+-- everything multiplexer-shaped in this config — the same module the
+-- <C-h/j/k/l> navigation maps go through. `mux.backends()` hands back the
+-- adapters worth trying, nearest first, each exposing:
 --
 --   find(agent)                     -> pane target, or nil
 --   send(agent, target, msg, quiet) -> ok; notifies unless quiet
 --   fallback                        -> target to guess at, or nil for "don't"
 --
--- `agent` is passed to send because tmux needs it to name its paste buffer.
+-- What stays here is the delivery POLICY built on top of that: try a pinned
+-- pane, then discovery, then a guess.
 --
 -- $<AGENT>_PANE (CLAUDE_PANE, OPENCODE_PANE) pins a destination pane: a tmux
 -- target-pane ("%3", "session:win.0") or a herdr pane id ("wF:p6"). The two
@@ -36,156 +39,18 @@
 -- rejects is not fatal — we fall through to discovery rather than fail on a
 -- stale export left in a shell profile. Unset, we go straight to discovery.
 
+local mux = require("ak.mux")
+
 local M = {}
-
--- ── tmux ───────────────────────────────────────────────────────────────────
--- Delivery goes through a named tmux buffer rather than `send-keys` so the
--- text arrives as a bracketed paste (-p): the agent's prompt sees the
--- newlines as literal newlines instead of submitting on the first one. `-d`
--- deletes the buffer after pasting. A separate `send-keys Enter` submits.
--- How to recognise each agent from `tmux list-panes` output. Both agents set a
--- pane title, but only OpenCode keeps a recognisable process name:
---
---   opencode  cmd=opencode   title=OpenCode
---   claude    cmd=2.1.229    title=◐ Fix Claude default selection in split view
---
--- Claude Code renames its process to its own version number, so the version
--- pattern IS the signature. The title is checked first for both, since it is
--- the one field the agent sets deliberately.
-local agent_matchers = {
-	claude = function(cmd, title)
-		return title:find("claude", 1, true) or cmd:find("claude", 1, true) or cmd:match("^%d+%.%d+%.%d+$") ~= nil
-	end,
-	opencode = function(cmd, title)
-		return title:find("opencode", 1, true) or cmd:find("opencode", 1, true)
-	end,
-}
-
--- Find the pane running `agent`, preferring the current window over the rest of
--- the session over other sessions — so with two agents side by side in this
--- window you always hit the one you asked for. Returns nil when nothing matches.
-local function tmux_find(agent)
-	local matches = agent_matchers[string.lower(agent)]
-	local fmt = "#{pane_id}\t#{window_active}\t#{session_attached}\t#{pane_current_command}\t#{pane_title}"
-	local r = vim.system({ "tmux", "list-panes", "-a", "-F", fmt }):wait()
-	if r.code ~= 0 or not matches then
-		return nil
-	end
-
-	local best, best_rank
-	for line in vim.gsplit(r.stdout or "", "\n", { trimempty = true }) do
-		local id, win_active, sess_attached, cmd, title = line:match("^(%S+)\t(%d)\t(%d)\t([^\t]*)\t(.*)$")
-		-- never target ourselves: $TMUX_PANE is this nvim's own pane
-		if id and id ~= vim.env.TMUX_PANE and matches(string.lower(cmd), string.lower(title)) then
-			local rank = (win_active == "1" and 0 or 1) + (sess_attached == "1" and 0 or 2)
-			if not best_rank or rank < best_rank then
-				best, best_rank = id, rank
-			end
-		end
-	end
-	return best
-end
-
-local function tmux_send(agent, target, msg, quiet)
-	local function tmux(args, stdin)
-		local r = vim.system(vim.list_extend({ "tmux" }, args), { stdin = stdin }):wait()
-		if r.code ~= 0 and not quiet then
-			vim.notify("tmux: " .. (r.stderr or ""), vim.log.levels.ERROR)
-		end
-		return r.code == 0
-	end
-
-	local buffer = "nvim_" .. string.lower(agent)
-
-	-- bracketed paste keeps newlines from submitting early
-	if not tmux({ "load-buffer", "-b", buffer, "-" }, msg) then
-		return false
-	end
-	if not tmux({ "paste-buffer", "-b", buffer, "-t", target, "-d", "-p" }) then
-		return false
-	end
-	return tmux({ "send-keys", "-t", target, "Enter" })
-end
-
--- ── herdr ──────────────────────────────────────────────────────────────────
--- No title/process sniffing here: herdr classifies agents itself and reports a
--- canonical kind ("claude", "opencode") per pane, so `agent list` IS the lookup
--- table that agent_matchers has to reconstruct for tmux.
---
--- Ranking mirrors the tmux one — same tab beats same workspace beats anything
--- else — so two agents side by side resolve to the near one.
-local function herdr_find(agent)
-	local r = vim.system({ "herdr", "agent", "list" }):wait()
-	if r.code ~= 0 then
-		return nil
-	end
-	-- type-check every hop rather than rely on truthiness: vim.json.decode maps
-	-- JSON null to vim.NIL, a userdata that is truthy and blows up on index.
-	local ok, decoded = pcall(vim.json.decode, r.stdout or "")
-	if not ok or type(decoded) ~= "table" or type(decoded.result) ~= "table" then
-		return nil
-	end
-	local agents = decoded.result.agents
-	if type(agents) ~= "table" then
-		return nil
-	end
-
-	local want = string.lower(agent)
-	local best, best_rank
-	for _, a in ipairs(agents) do
-		-- never target ourselves: $HERDR_PANE_ID is this nvim's own pane
-		if
-			type(a) == "table"
-			and a.agent == want
-			and type(a.pane_id) == "string"
-			and a.pane_id ~= vim.env.HERDR_PANE_ID
-		then
-			local rank = (a.tab_id == vim.env.HERDR_TAB_ID and 0 or 1)
-				+ (a.workspace_id == vim.env.HERDR_WORKSPACE_ID and 0 or 2)
-			if not best_rank or rank < best_rank then
-				best, best_rank = a.pane_id, rank
-			end
-		end
-	end
-	return best
-end
-
--- `agent prompt` submits text and Enter in one call, honouring the pane's live
--- bracketed-paste mode — so it needs none of the tmux buffer dance. No --wait:
--- we hand the prompt over and get out of the way.
-local function herdr_send(_agent, target, msg, quiet)
-	local r = vim.system({ "herdr", "agent", "prompt", target, msg }):wait()
-	if r.code ~= 0 and not quiet then
-		vim.notify("herdr: " .. (r.stderr or ""), vim.log.levels.ERROR)
-	end
-	return r.code == 0
-end
-
-local herdr_backend = { find = herdr_find, send = herdr_send, fallback = nil }
-local tmux_backend = { find = tmux_find, send = tmux_send, fallback = ".+" }
-
--- Backends to try, most likely first. This is a LIST rather than a single
--- pick because "inside herdr" doesn't prove the agents are herdr's: nvim can
--- sit in a tmux session nested inside a herdr pane, with claude/opencode in
--- tmux panes. herdr is asked first, and when it has nothing we fall through
--- instead of hard-failing a setup that worked before.
-local function backends()
-	local list = {}
-	if vim.env.HERDR_ENV == "1" then
-		list[#list + 1] = herdr_backend
-	end
-	if vim.env.TMUX then
-		list[#list + 1] = tmux_backend
-	end
-	return list
-end
 
 -- ── The one public function ────────────────────────────────────────────────
 -- Call from visual mode: prompts for a question, then delivers selection +
 -- question to `agent` ("Claude", "OpenCode" — matched case-insensitively).
 function M.ask(agent)
-	local bes = backends()
-	if #bes == 0 then
+	-- Resolved once and used by all three delivery attempts below, rather than
+	-- re-asked per attempt: the answer cannot change inside one keystroke.
+	local backends = mux.backends()
+	if #backends == 0 then
 		return vim.notify("Not inside tmux or herdr", vim.log.levels.ERROR)
 	end
 
@@ -220,7 +85,7 @@ function M.ask(agent)
 		-- multiplexer's id format. Try it quietly, and on rejection carry
 		-- on to discovery rather than surfacing a raw CLI error.
 		local pinned = vim.env[env_name]
-		if pinned and bes[1].send(agent, pinned, msg, true) then
+		if pinned and backends[1].send(agent, pinned, msg, true) then
 			return
 		end
 		if pinned then
@@ -230,22 +95,22 @@ function M.ask(agent)
 			)
 		end
 
-		for _, be in ipairs(bes) do
-			local target = be.find(agent)
+		for _, backend in ipairs(backends) do
+			local target = backend.find(agent)
 			if target then
-				return be.send(agent, target, msg)
+				return backend.send(agent, target, msg)
 			end
 		end
 
 		-- Nothing found. tmux can still guess "the pane next door"; herdr's
 		-- `agent prompt` needs a real agent target, so it offers no guess.
-		for _, be in ipairs(bes) do
-			if be.fallback then
+		for _, backend in ipairs(backends) do
+			if backend.fallback then
 				vim.notify(
 					("No %s pane found; falling back to the next pane. Set $%s to pin one."):format(agent, env_name),
 					vim.log.levels.WARN
 				)
-				return be.send(agent, be.fallback, msg)
+				return backend.send(agent, backend.fallback, msg)
 			end
 		end
 

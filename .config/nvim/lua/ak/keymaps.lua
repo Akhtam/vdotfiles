@@ -24,14 +24,14 @@ map("n", "<leader>sh", "<C-w>s", { desc = "Split window horizontally" })
 map("n", "<leader>se", "<C-w>=", { desc = "Make splits equal size" })
 map("n", "<leader>sx", "<cmd>close<CR>", { desc = "Close current split" })
 
--- <C-h/j/k/l> split navigation lives in plugins/tmux.lua and ak/herdr.lua,
--- not here. Whichever multiplexer you are actually inside binds them last.
+-- <C-h/j/k/l> split navigation lives in ak/mux.lua, not here. Those four keys
+-- are a superset of <C-w>h/j/k/l: identical between Neovim splits, and
+-- additionally crossing into the neighbouring tmux/herdr pane at the window
+-- edge. Which of those two it talks to is decided once, by ak.mux.detect().
 --
--- vim-tmux-navigator binds those four keys to a superset of <C-w>h/j/k/l:
--- identical between Neovim splits, and additionally crossing into tmux panes
--- at the window edge. Defining them here as well would just be shadowed
--- depending on load order, so they're defined once, next to the plugin that
--- gives them their extra behaviour.
+-- Defining them here as well would just shadow, or be shadowed by, that
+-- module depending on load order — so they're defined once, next to the
+-- machinery that gives them their extra behaviour.
 
 -- ── Tabs ───────────────────────────────────────────────────────────────────
 -- NOTE: <leader>t is claimed by neotest (its maps live in neotest.lua), so

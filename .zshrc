@@ -1,165 +1,116 @@
-# If you come from bash you might have to change your $PATH.
-# export PATH=$HOME/bin:/usr/local/bin:$PATH
+# ~/.zshrc
+#
+# What used to be here: oh-my-zsh's install template, ~90 lines of commented-out
+# settings shipped with the framework. They documented options this shell does
+# not set, and the ~60 lines that are actually configuration were scattered
+# through them — as was the duplication, which is hard to see against a
+# background of dead text. The template is upstream's documentation, not this
+# machine's config; `less $ZSH/templates/zshrc.zsh-template` still has it.
 
-# Path to your oh-my-zsh installation.
-export ZSH="$HOME/.oh-my-zsh"
+# ── Environment ────────────────────────────────────────────────────────────
+# One editor, stated once. `git commit`, lazygit, and the fzf helpers below all
+# read $EDITOR, so this is the single place that decides which one opens.
+export EDITOR="nvim"
+export VISUAL="$EDITOR"
 
-# Set name of the theme to load --- if set to "random", it will
-# load a random theme each time oh-my-zsh is loaded, in which case,
-# to know which specific one was loaded, run: echo $RANDOM_THEME
-# See https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
-ZSH_THEME="agnoster"
+# Read by `bat` — and it must be EXPORTED to be read at all, since bat is a
+# child process and plain shell variables aren't inherited. The theme file
+# itself is ~/.dotfiles/.config/bat/themes/tokyonight_night.tmTheme, linked into
+# place by install.sh; `bat cache --build` is what registers it.
+export BAT_THEME="tokyonight_night"
 
+# ── PATH ───────────────────────────────────────────────────────────────────
+# Assembled in one block. Each line PREPENDS, so the last line listed wins —
+# the order below reads lowest-priority first.
 export PATH="${ASDF_DATA_DIR:-$HOME/.asdf}/shims:$PATH"
+export PATH="$HOME/.local/bin:$PATH"
 
-# Set list of themes to pick from when loading at random
-# Setting this variable when ZSH_THEME=random will cause zsh to load
-# a theme from this variable instead of looking in $ZSH/themes/
-# If set to an empty array, this variable will have no effect.
-# ZSH_THEME_RANDOM_CANDIDATES=( "robbyrussell" "agnoster" )
+# pnpm's global bin. The case guard is pnpm's own generated snippet, kept
+# because it makes re-sourcing this file idempotent.
+export PNPM_HOME="$HOME/Library/pnpm"
+case ":$PATH:" in
+  *":$PNPM_HOME/bin:"*) ;;
+  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
+esac
 
-# Uncomment the following line to use case-sensitive completion.
-# CASE_SENSITIVE="true"
-
-# Uncomment the following line to use hyphen-insensitive completion.
-# Case-sensitive completion must be off. _ and - will be interchangeable.
-# HYPHEN_INSENSITIVE="true"
-
-# Uncomment one of the following lines to change the auto-update behavior
-# zstyle ':omz:update' mode disabled  # disable automatic updates
-# zstyle ':omz:update' mode auto      # update automatically without asking
-# zstyle ':omz:update' mode reminder  # just remind me to update when it's time
-
-# Uncomment the following line to change how often to auto-update (in days).
-# zstyle ':omz:update' frequency 13
-
-# Uncomment the following line if pasting URLs and other text is messed up.
-# DISABLE_MAGIC_FUNCTIONS="true"
-
-# Uncomment the following line to disable colors in ls.
-# DISABLE_LS_COLORS="true"
-
-# Uncomment the following line to disable auto-setting terminal title.
-# DISABLE_AUTO_TITLE="true"
-
-# Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
-
-# Uncomment the following line to display red dots whilst waiting for completion.
-# You can also set it to another string to have that shown instead of the default red dots.
-# e.g. COMPLETION_WAITING_DOTS="%F{yellow}waiting...%f"
-# Caution: this setting can cause issues with multiline prompts in zsh < 5.7.1 (see #5765)
-# COMPLETION_WAITING_DOTS="true"
-
-# Uncomment the following line if you want to disable marking untracked files
-# under VCS as dirty. This makes repository status check for large repositories
-# much, much faster.
-# DISABLE_UNTRACKED_FILES_DIRTY="true"
-
-# Uncomment the following line if you want to change the command execution time
-# stamp shown in the history command output.
-# You can set one of the optional three formats:
-# "mm/dd/yyyy"|"dd.mm.yyyy"|"yyyy-mm-dd"
-# or set a custom format using the strftime function format specifications,
-# see 'man strftime' for details.
-# HIST_STAMPS="mm/dd/yyyy"
-
-# Would you like to use another custom folder than $ZSH/custom?
-# ZSH_CUSTOM=/path/to/new-custom-folder
-
-# Which plugins would you like to load?
-# Standard plugins can be found in $ZSH/plugins/
-# Custom plugins may be added to $ZSH_CUSTOM/plugins/
-# Example format: plugins=(rails git textmate ruby lighthouse)
-# Add wisely, as too many plugins slow down shell startup.
+# ── oh-my-zsh ──────────────────────────────────────────────────────────────
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="agnoster"
 plugins=(git)
-
 source $ZSH/oh-my-zsh.sh
+
+# Two-line prompt: agnoster's segments on the first line, the cursor on its own
+# line below, so a long path never leaves you typing in the last few columns.
+# Must come AFTER oh-my-zsh.sh, which is where agnoster sets PROMPT.
 PROMPT=$'\n%{%f%b%k%}╭─ $(build_prompt)\n╰─> '
 RPROMPT=''
+# Drop agnoster's `user@host` segment — it costs a third of the prompt to tell
+# you something that never changes on a single-user laptop.
 prompt_context() {}
-# User configuration
 
-# export MANPATH="/usr/local/man:$MANPATH"
-
-# You may need to manually set your language environment
-# export LANG=en_US.UTF-8
-
-# Preferred editor for local and remote sessions
-# if [[ -n $SSH_CONNECTION ]]; then
-#   export EDITOR='vim'
-# else
-#   export EDITOR='mvim'
-# fi
-
-# Compilation flags
-# export ARCHFLAGS="-arch x86_64"
-
-#======================FZF CONFIG START===============================================
-# FZF FD
+# ── fzf ────────────────────────────────────────────────────────────────────
+# fd rather than find: respects .gitignore by default and is faster on large
+# trees. --strip-cwd-prefix keeps results as relative paths.
 export FZF_DEFAULT_COMMAND="fd --hidden --strip-cwd-prefix --exclude .git"
 export FZF_CTRL_T_COMMAND="$FZF_DEFAULT_COMMAND"
 export FZF_ALT_C_COMMAND="fd --type=d --hidden --strip-cwd-prefix --exclude .git"
 
-# Use fd (https://github.com/sharkdp/fd) for listing path candidates.
-# - The first argument to the function ($1) is the base path to start traversal
-# - See the source code (completion.{bash,zsh}) for the details.
+# Path/directory candidate generators for fzf's completion. $1 is the base path
+# to start traversal from — see fzf's completion.zsh for the contract.
 _fzf_compgen_path() {
   fd --hidden --exclude .git . "$1"
 }
 
-# Use fd to generate the list for directory completion
 _fzf_compgen_dir() {
   fd --type=d --hidden --exclude .git . "$1"
 }
 
-# Define the preview command
+# Directories get a tree, files get syntax-highlighted head.
 show_file_or_dir_preview="if [ -d {} ]; then lsd --tree --color=always {} | head -200; else bat -n --color=always --line-range :500 {}; fi"
 
-# FZF options for CTRL-T and ALT-C with preview
-export FZF_CTRL_T_OPTS="--preview '$show_file_or_dir_preview' --bind 'ctrl-v:execute(vim {})'"
-export FZF_ALT_C_OPTS="--preview 'lsd --tree --color=always {} | head -200' --bind 'ctrl-v:execute(vim {})'"
+# "Open the highlighted result in the editor", spelled once and referenced by
+# every fzf invocation below. It used to be six copies of the same string —
+# four of which said `vim` while the rest of this file said nvim, so the key did
+# something subtly different depending on which fzf you were in.
+fzf_open_bind="ctrl-v:execute($EDITOR {})"
 
-# Advanced customization of fzf options via _fzf_comprun function
+export FZF_CTRL_T_OPTS="--preview '$show_file_or_dir_preview' --bind '$fzf_open_bind'"
+export FZF_ALT_C_OPTS="--preview 'lsd --tree --color=always {} | head -200' --bind '$fzf_open_bind'"
+
+# Per-command fzf behaviour: `cd **<TAB>` gets a tree preview, `ssh **<TAB>`
+# gets a DNS lookup, everything else gets the file/dir preview.
 _fzf_comprun() {
   local command=$1
   shift
 
   case "$command" in
-    cd)           fzf --preview 'lsd --tree --color=always {} | head -200' --bind 'ctrl-v:execute(vim {})' "$@" ;;
-    export|unset) fzf --preview "eval 'echo ${}'" --bind 'ctrl-v:execute(vim {})' "$@" ;;
-    ssh)          fzf --preview 'dig {}' --bind 'ctrl-v:execute(vim {})' "$@" ;;
-    *)            fzf --preview "$show_file_or_dir_preview" --bind 'ctrl-v:execute(vim {})' "$@" ;;
+    cd)           fzf --preview 'lsd --tree --color=always {} | head -200' --bind "$fzf_open_bind" "$@" ;;
+    export|unset) fzf --preview "eval 'echo ${}'" --bind "$fzf_open_bind" "$@" ;;
+    ssh)          fzf --preview 'dig {}' --bind "$fzf_open_bind" "$@" ;;
+    *)            fzf --preview "$show_file_or_dir_preview" --bind "$fzf_open_bind" "$@" ;;
   esac
 }
 
+# Grep the tree with ripgrep, pick a hit with fzf, open it at that line.
+# Bound to `rgf` below.
 fzf_rg() {
   local query="$1"
 
-  # If no query is provided, prompt the user
+  # If no query is provided, prompt for one.
   if [[ -z "$query" ]]; then
     query=$(echo "" | fzf --prompt="Enter regex: " --header="Search files with regex" --print-query)
-    [[ -z "$query" ]] && return  # Exit if no query is entered
+    [[ -z "$query" ]] && return
   fi
-  
-  # Use ripgrep to search and fzf for navigation
+
   rg --color=always --line-number "$query" |
     fzf --ansi \
         --delimiter=":" \
         --preview="bat --color=always --style=numbers --highlight-line {2} {1}" \
         --preview-window="60%" \
-        --bind="enter:execute(vim {1} +{2})" \
+        --bind="enter:execute($EDITOR {1} +{2})"
 }
-#======================FZF CONFIG END===============================================
 
-# Set personal aliases, overriding those provided by oh-my-zsh libs,
-# plugins, and themes. Aliases can be placed here, though oh-my-zsh
-# users are encouraged to define aliases within the ZSH_CUSTOM folder.
-# For a full list of active aliases, run `alias`.
-#
-# Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
+# ── Aliases ────────────────────────────────────────────────────────────────
 alias bx="bundle exec"
 alias ls="lsd"
 alias lt="lsd --tree"
@@ -172,22 +123,11 @@ alias pn="pnpm"
 alias hra="herdr session attach"
 alias hr='herdr'
 
-BAT_THEME="tokyonight_night"
-# Set up fzf key bindings and fuzzy completion
+# ── Completion ─────────────────────────────────────────────────────────────
+# fzf's key bindings (CTRL-T, CTRL-R, ALT-C) and fuzzy completion.
 source <(fzf --zsh)
-# The following lines have been added by Docker Desktop to enable Docker CLI completions.
-fpath=(/Users/akhtamismatov/.docker/completions $fpath)
+
+# Added by Docker Desktop. compinit has to run after fpath is final.
+fpath=($HOME/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
-# End of Docker CLI completions
-
-export PATH="$HOME/.local/bin:$PATH"
-export PATH="$HOME/.local/bin:$PATH"
-
-# pnpm
-export PNPM_HOME="/Users/akhtamismatov/Library/pnpm"
-case ":$PATH:" in
-  *":$PNPM_HOME/bin:"*) ;;
-  *) export PATH="$PNPM_HOME/bin:$PATH" ;;
-esac
-# pnpm end

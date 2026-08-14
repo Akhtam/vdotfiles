@@ -36,6 +36,17 @@ vim.g.loaded_node_provider = 0
 
 require('ak.options')     -- vim.opt settings; depends on nothing
 require('ak.keymaps')     -- plugin-independent maps only
+
+-- The multiplexer seam: <C-h/j/k/l> navigation across Neovim splits and
+-- tmux/herdr panes, plus the pane discovery ak.agent delivers through.
+--
+-- Position here is a preference, not a constraint, and that is new. There used
+-- to be two modules binding those four keys — plugins/tmux.lua and ak/herdr.lua
+-- — so which one loaded last decided which multiplexer you got, and this file
+-- carried a paragraph explaining the ordering. ak.mux binds them once, from one
+-- detection, so nothing downstream depends on when this line runs.
+require('ak.mux').setup()
+
 require('ak.agent')       -- <leader>ac/ao: ask Claude/OpenCode about the selection
 require('ak.autocmds')    -- editor behaviour; reads options set above
 
@@ -53,13 +64,6 @@ require('ak.plugins')
 -- resolves once vim.pack.add() has put the plugin on the runtimepath. This
 -- module used to sit above, back when it was core-only and had no dependency.
 require('ak.treesitter')
-
--- herdr AFTER plugins, and this ordering is load-bearing too. This module
--- rebinds <C-h/j/k/l> to split-or-herdr-pane navigation, so it must land after
--- ak.plugins.tmux has bound those same four keys to the tmux variant. It
--- no-ops entirely when $HERDR_PANE_ID is absent, so under tmux or a bare
--- terminal the tmux mappings survive untouched.
-require('ak.herdr')
 
 require('ak.diagnostics') -- vim.diagnostic.config; independent of any client
 require('ak.lsp')         -- vim.lsp.config defaults, enable list, LspAttach maps
