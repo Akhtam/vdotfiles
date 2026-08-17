@@ -3,27 +3,21 @@
 -- Completion. Pinned to the 1.x line in plugins/init.lua — v2 is mid-rewrite
 -- and needs a separate blink.lib plugin.
 --
--- Every option below was checked against the installed v1.10.2 schema in
--- lua/blink/cmp/config/, not copied from a blog post. blink's own defaults are
--- good, so this file is mostly small deviations plus the reasoning for them.
+-- blink's defaults are good, so this file is mostly small deviations and the
+-- reasoning for them. Options were checked against the v1.10.2 schema in
+-- lua/blink/cmp/config/.
 
 require("blink.cmp").setup({
 	-- ── Keymap ───────────────────────────────────────────────────────────────
-	-- Presets available in v1.10.2: 'none', 'default', 'enter', 'super-tab'.
-	--
 	-- 'default' keeps completion on Ctrl keys and leaves Tab and Enter alone:
-	--   <C-space>  open menu / open docs
-	--   <C-n>/<C-p> or <Up>/<Down>  cycle items
-	--   <C-y>      accept
-	--   <C-e>      dismiss
+	--   <C-space>  open menu / open docs      <C-y>  accept
+	--   <C-n>/<C-p> or <Up>/<Down>  cycle     <C-e>  dismiss
 	--   <C-k>      toggle signature help
 	--
-	-- Chosen over 'super-tab' and 'enter' deliberately. Both of those overload a
-	-- key that already means something: Enter must still insert a newline, and
-	-- Tab must still indent. Overloading them means the menu's visibility silently
-	-- changes what a keystroke does, which produces exactly the class of bug where
-	-- you press Enter for a newline and get a completion you didn't want.
-	-- <C-y> is unambiguous — it only ever means accept.
+	-- Chosen over 'super-tab' and 'enter' because both overload a key that
+	-- already means something, so menu visibility silently changes what a
+	-- keystroke does — press Enter for a newline, get a completion. <C-y> only
+	-- ever means accept.
 	keymap = {
 		preset = "default",
 
@@ -41,10 +35,9 @@ require("blink.cmp").setup({
 	},
 
 	appearance = {
-		-- 'mono' makes nerd-font icons occupy one cell so the menu columns line up.
-		-- JetBrains Mono NL has no icon glyphs of its own — these come from a Nerd
-		-- Font fallback. If the menu shows tofu boxes, either install a Nerd Font
-		-- or set completion.menu.draw.columns below to drop the kind_icon column.
+		-- 'mono' makes nerd-font icons one cell wide so menu columns line up. If
+		-- the menu shows tofu boxes, install a Nerd Font or drop the kind_icon
+		-- column from completion.menu.draw.columns below.
 		nerd_font_variant = "mono",
 	},
 
@@ -58,19 +51,17 @@ require("blink.cmp").setup({
 		},
 
 		documentation = {
-			-- Show the doc window automatically, after a beat. The delay is the whole
-			-- point: without it the window flickers open and shut as you arrow through
-			-- a list. 200ms is long enough to imply intent, short enough not to wait.
+			-- The delay is the point: without it the doc window flickers open and
+			-- shut as you arrow through a list.
 			auto_show = true,
 			auto_show_delay_ms = 200,
 		},
 
 		menu = {
 			draw = {
-				-- Kind icon, label, then the source. The source column matters in this
-				-- config specifically: with lsp + snippets + path + buffer all live, and
-				-- a TSX buffer served by both vtsls and eslint, knowing where a
-				-- suggestion came from tells you whether to trust it.
+				-- The source column earns its width here: with lsp + snippets + path
+				-- + buffer all live and a TSX buffer served by vtsls AND eslint,
+				-- where a suggestion came from tells you whether to trust it.
 				columns = {
 					{ "kind_icon" },
 					{ "label", "label_description", gap = 1 },
@@ -94,17 +85,15 @@ require("blink.cmp").setup({
 	},
 
 	-- ── Signature help ───────────────────────────────────────────────────────
-	-- Parameter hints while typing inside a call. Neovim binds CTRL-S in insert
-	-- mode to vim.lsp.buf.signature_help() by default; this is the always-on
-	-- version, which is more useful for TypeScript generics where the signature
-	-- is the thing you're actually reading.
+	-- Always-on parameter hints inside a call, rather than Neovim's on-demand
+	-- insert-mode CTRL-S. Worth it for TypeScript generics, where the signature
+	-- is the thing you're reading.
 	signature = { enabled = true },
 
 	-- ── Sources ──────────────────────────────────────────────────────────────
 	sources = {
-		-- Matches blink's own default; stated explicitly so the list is visible.
-		-- Order does NOT determine priority — that's score-based — it just declares
-		-- which providers run.
+		-- blink's own default, stated so the list is visible. Order does NOT set
+		-- priority (that's score-based below); it only declares which run.
 		default = { "lsp", "path", "snippets", "buffer" },
 
 		providers = {
@@ -114,10 +103,9 @@ require("blink.cmp").setup({
 			path = { score_offset = 1 },
 		},
 
-		-- friendly-snippets needs no wiring: the default snippets provider sets
-		-- `friendly_snippets = true` and scans the runtimepath for any plugin
-		-- matching 'friendly.snippets'. Installing it in plugins/init.lua is the
-		-- entire integration.
+		-- friendly-snippets needs no wiring: the snippets provider scans the
+		-- runtimepath for it. Installing it in plugins/init.lua is the whole
+		-- integration.
 
 		per_filetype = {
 			-- Commit messages: buffer words and paths are useful (branch names,
@@ -128,14 +116,10 @@ require("blink.cmp").setup({
 
 	-- ── Fuzzy matcher ────────────────────────────────────────────────────────
 	fuzzy = {
-		-- 'prefer_rust_with_warning' is blink's own recommended value: use the Rust
-		-- matcher, download a prebuilt binary automatically, and fall back to Lua
-		-- with a visible warning if that fails.
-		--
-		-- The warning is the point. The silent variant ('prefer_rust') would leave
-		-- you on the slow path without ever saying so. Because we pinned a TAGGED
-		-- version, the downloader can resolve the matching binary from the git tag —
-		-- this is a concrete benefit of pinning that isn't obvious up front.
+		-- Rust matcher with an auto-downloaded prebuilt binary, falling back to Lua
+		-- with a VISIBLE warning. The warning is the point — 'prefer_rust' would
+		-- leave you on the slow path silently. Pinning a TAGGED version is what
+		-- lets the downloader resolve the matching binary from the git tag.
 		implementation = "prefer_rust_with_warning",
 
 		-- Boost items whose text appears near the cursor. Good in React files,
@@ -150,9 +134,9 @@ require("blink.cmp").setup({
 
 	-- ── Cmdline ──────────────────────────────────────────────────────────────
 	cmdline = {
-		-- Completion in : and / . Kept to a manual trigger: an auto-showing menu
-		-- over the cmdline covers the buffer text you are often reading in order to
-		-- type the command. <C-space> opens it when wanted.
+		-- Manual trigger only: an auto-showing menu over the cmdline covers the
+		-- buffer text you're usually reading in order to type the command.
+		-- <C-space> opens it when wanted.
 		enabled = true,
 		completion = {
 			menu = { auto_show = false },

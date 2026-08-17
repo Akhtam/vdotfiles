@@ -3,10 +3,15 @@
 -- Formatting. conform runs external formatters and can fall back to the LSP.
 --
 -- Division of labour, decided per language rather than globally:
---   JS/TS/CSS/JSON/YAML/MD  prettierd  (daemon: fast enough for format-on-save)
+--   JS/TS/CSS/JSON/YAML/MD  prettierd  (daemon: no Node startup per save)
 --   Ruby/ERB                the LSP    (ruby-lsp formats in-process; shelling
 --                                       out to rubocop costs 1-3s of VM boot)
 --   Lua                     stylua
+--
+-- FORMAT-ON-SAVE IS CURRENTLY OFF — the `format_on_save` block below and the
+-- FormatToggle command / <leader>mt are commented out. <leader>mp formats on
+-- demand. Uncomment both blocks together to turn it back on; the toggle exists
+-- because :noautocmd w can't skip conform (it uses BufWritePre).
 
 local conform = require('conform')
 
@@ -31,20 +36,15 @@ conform.setup({
     lua = { 'stylua' },
 
     -- ── Ruby: fast path via LSP, correct fallback via CLI ──
+    -- ruby-lsp has rubocop in-process and formats instantly; the CLI costs 1-3s
+    -- of VM boot. But ruby-lsp only advertises formatting when it RESOLVES a
+    -- formatter, and it resolves by inspecting the bundle, not by finding a
+    -- .rubocop.yml — so in a project with .rubocop.yml but no Gemfile it reports
+    -- no formatting support, and omitting ruby here would leave that project
+    -- with none at all.
     --
-    -- Preference is ruby-lsp, which has rubocop loaded in-process and formats
-    -- instantly. Shelling out to the rubocop CLI costs 1-3s of Ruby VM boot,
-    -- well past where format-on-save stops feeling automatic.
-    --
-    -- But ruby-lsp only advertises formatting when it RESOLVES a formatter,
-    -- and `formatter = 'auto'` resolves by inspecting the bundle — not by
-    -- looking for a .rubocop.yml. Verified: in a project with a .rubocop.yml
-    -- but no Gemfile, ruby_lsp:supports_method('textDocument/formatting')
-    -- returns false. Leaving Ruby out of this table entirely would mean such a
-    -- project gets NO formatting from either path.
-    --
-    -- So: a function, evaluated per buffer. Empty list => conform defers to
-    -- lsp_format below. Non-empty => the CLI runs.
+    -- Hence a per-buffer function: empty list defers to lsp_format, non-empty
+    -- runs the CLI.
     ruby = function(bufnr)
       for _, client in ipairs(vim.lsp.get_clients({ bufnr = bufnr, name = 'ruby_lsp' })) do
         if client:supports_method('textDocument/formatting') then
@@ -86,11 +86,12 @@ conform.setup({
 })
 
 -- ── Keymaps ────────────────────────────────────────────────────────────────
--- Yours, verbatim in behaviour. `lsp_fallback = true` translated to
--- `lsp_format = 'fallback'` — same meaning, current spelling.
+-- lsp_format = 'fallback' means "a formatter from the table above if one
+-- exists, otherwise the LSP" — this is what routes Ruby to ruby-lsp. (The older
+-- `lsp_fallback = true` spelling is deprecated.)
 --
--- async = false is deliberate on a manual format: it blocks until done, so a
--- format immediately followed by :w can't race and write the unformatted text.
+-- async = false is deliberate: it blocks until done, so a format immediately
+-- followed by :w can't race and write the unformatted text.
 vim.keymap.set({ 'n', 'v' }, '<leader>mp', function()
   conform.format({
     lsp_format = 'fallback',

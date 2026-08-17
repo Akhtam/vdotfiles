@@ -1,14 +1,12 @@
 -- lua/ak/plugins/words.lua
 --
--- Jump between LSP references of the symbol under the cursor. The
--- highlighting itself is passive (config in plugins/snacks.lua, `words`
--- module) — this file is only the navigation keymaps, same split as
--- lazygit.lua/explorer.lua keeping keymaps out of their module's setup call.
+-- Jump between LSP references of the symbol under the cursor. The highlighting
+-- is passive and configured in plugins/snacks.lua; this file is only the
+-- navigation keymaps.
 --
--- `]]`/`[[` were unbound (checked against `nvim --clean`: not among the
--- built-in `]`/`[` family, which is diagnostics/folds/etc., not references).
--- vim.v.count1 makes a count prefix work, e.g. `3]]` jumps 3 references
--- forward, same convention as the built-in ]d/[d.
+-- `]]`/`[[` are unbound by default — the built-in `]`/`[` family covers
+-- diagnostics and folds, not references. vim.v.count1 makes a count prefix
+-- work (`3]]`), matching the built-in ]d/[d convention.
 
 local map = vim.keymap.set
 

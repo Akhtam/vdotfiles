@@ -1,117 +1,83 @@
 -- lua/ak/mux.lua
 --
--- The multiplexer seam, in one module.
---
--- Exactly two things get asked of the terminal multiplexer from inside Neovim:
---
---   "move focus to the pane in <direction>"   — the <C-h/j/k/l> maps
---   "get this message to <agent>"             — <leader>ac / <leader>ao, ak/agent.lua
---
--- Both are answered differently under tmux and under herdr, and each answer
--- used to carry its own copy of "which multiplexer am I in": plugins/tmux.lua
--- assumed tmux, ak/herdr.lua tested $HERDR_PANE_ID, ak/agent.lua tested
--- $HERDR_ENV and $TMUX, and .config/herdr/herdr-nav.sh asked the herdr server.
--- Four tests of one fact, plus two independent statements of the same
--- no-wrap / save-on-switch policy.
---
--- Now the fact is established once, the policy is stated once, and a third
--- multiplexer would be one adapter table rather than a fifth detection site.
+-- The multiplexer seam. Neovim asks the terminal multiplexer exactly two
+-- things — "move focus to the pane in <direction>" (<C-h/j/k/l>) and "get this
+-- message to <agent>" (<leader>ac/ao, via ak/agent.lua) — and tmux and herdr
+-- answer both differently. Detection happens once here; a third multiplexer
+-- would be one more adapter table, not another detection site.
 --
 -- ── Interface ──────────────────────────────────────────────────────────────
 --
---   M.detect(env)                    -> 'herdr' | 'tmux' | nil  which multiplexer owns this pane
---   M.reachable(env)                 -> is there any multiplexer to deliver through?
---   M.deliver(agent, msg, backends)  -> ok, err   get msg to agent, wherever it is
+--   M.detect(env)                    -> 'herdr' | 'tmux' | nil  who owns this pane
+--   M.reachable(env)                 -> any multiplexer to deliver through?
+--   M.deliver(agent, msg, backends)  -> ok, err
 --   M.setup()                        -> apply policy, bind the navigation keys
 --
--- The three queries take an optional trailing table — an env for the first two,
--- a backend list for deliver — defaulting to the live process. (setup() takes
--- none; it acts on this process by definition.) That parameter is not
--- decoration: it is the only way to exercise this module without a live
--- multiplexer, and the way each was checked when it was written —
+-- The trailing parameter defaults to the live process and is the only way to
+-- exercise this module without a real multiplexer:
 --
 --   :lua =require('ak.mux').detect({ TMUX = '/tmp/x' })     -> 'tmux'
 --   :lua =require('ak.mux').reachable({ HERDR_ENV = '1' })  -> true
---
--- deliver() needs adapters rather than an env, so its fakes are a little more
--- than a table literal — each needs find/send/fallback:
---
 --   :lua =require('ak.mux').deliver('claude', 'hi', {
 --          { find = function() return 'p1' end,
---            send = function() print('sent') return true end } })   -> true
+--            send = function() return true end } })         -> true
 --
--- One tier still reads the live process: $<AGENT>_PANE is looked up via
--- vim.env, not the backend list, so exercising the pinned tier means setting
--- vim.env.CLAUDE_PANE first. Everything else is driven by the argument.
+-- One exception: the pinned tier of deliver() reads $<AGENT>_PANE from vim.env
+-- rather than the backend list, so exercising it means setting
+-- vim.env.CLAUDE_PANE first.
 --
--- What is deliberately NOT in this interface, and why:
---
---   focus(dir)   the four keymaps in setup() are its only caller and they hold
---                the adapter already, so a public focus() would exist purely to
---                be re-looked-up on every keypress.
---
---   backends()   handing out the adapter list makes the adapter TABLE public,
---                and a caller that holds adapters inevitably reimplements the
---                delivery ladder against them — which is exactly what
---                ak/agent.lua used to do: it indexed backends[1], read
---                .fallback, and called .find/.send itself. deliver() exists so
---                that the adapter fields have exactly one consumer, in this
---                file.
+-- focus() and backends() are deliberately private. Exposing the adapter list
+-- invites callers to reimplement the delivery ladder against it — ak/agent.lua
+-- used to do exactly that. deliver() keeps the adapter fields to one consumer.
 --
 -- ── Adapters ───────────────────────────────────────────────────────────────
 -- Each multiplexer supplies one table:
 --
---   owns_pane(env)                  -> is Neovim sitting directly in one of its panes?
+--   owns_pane(env)                  -> is Neovim directly in one of its panes?
 --   reachable(env)                  -> is it around at all, even if we're nested?
 --   focus(dir)                      -> the whole motion, split-aware
 --   find(agent)                     -> pane target, or nil
 --   send(agent, target, msg, quiet) -> ok; notifies unless quiet
 --   fallback                        -> target to guess at, or nil for "don't"
---   relay_chord                     -> optional. true when the multiplexer
---                                      relays <M-h/j/k/l> into the pane and
---                                      setup() must bind a landing pad for it.
---                                      herdr only; see its adapter.
+--   relay_chord                     -> optional; true when the multiplexer relays
+--                                      <M-h/j/k/l> into the pane and setup() must
+--                                      bind a landing pad. herdr only.
 --
--- owns_pane and reachable are deliberately different tests, not an oversight:
--- Neovim can run in a tmux session nested inside a herdr pane. tmux owns the
--- pane (so <C-h> must speak tmux), while herdr is still reachable (so an agent
--- running in a herdr pane next door is still a valid delivery target).
+-- owns_pane and reachable are different tests on purpose: Neovim can run in a
+-- tmux session nested inside a herdr pane, where tmux owns the pane (so <C-h>
+-- speaks tmux) but herdr is still reachable (so an agent in a herdr pane next
+-- door is still a valid delivery target).
 --
 -- `agent` is passed to send because tmux needs it to name its paste buffer.
 
 local M = {}
 
--- The one condition a caller may want to test for itself before doing
--- expensive or interactive work, so the wording lives in one place rather than
--- once here and once in ak/agent.lua. deliver() returns this as its `err`.
+-- Exposed so ak/agent.lua can test the condition before doing interactive work
+-- without restating the wording. deliver() returns this as its `err`.
 M.no_backend_error = 'Not inside tmux or herdr'
 
 -- ── Policy ─────────────────────────────────────────────────────────────────
--- Stated once, here. Under tmux these become vim.g flags that
--- vim-tmux-navigator reads; under herdr the adapter below implements them by
--- hand, because herdr ships no navigator plugin. Change one of these and both
--- multiplexers follow.
+-- Stated once. Under tmux these become vim.g flags vim-tmux-navigator reads;
+-- under herdr the adapter implements them by hand, since herdr ships no
+-- navigator plugin. Change one and both multiplexers follow.
 M.policy = {
-  -- Write the current buffer when leaving Neovim for another pane. You jump to
-  -- a pane to run `bin/rspec` or `pnpm test` against the file you just edited,
-  -- and without this you'd be running the previous version of it.
+  -- Write the buffer when leaving for another pane — you jump to a pane to run
+  -- `bin/rspec` against the file you just edited.
   save_on_switch = true,
 
-  -- Don't wrap around from the rightmost pane to the leftmost. Wrapping means
-  -- a <C-l> too many teleports you across the screen instead of doing nothing.
+  -- No wrapping from rightmost pane to leftmost: one <C-l> too many should do
+  -- nothing, not teleport you across the screen.
   no_wrap = true,
 
-  -- When a tmux pane is zoomed, don't navigate out of it — zoom means "I want
-  -- only this pane", and silently leaving it is disorienting. tmux only: herdr
-  -- exposes no zoom state to test, so its adapter cannot honour this.
+  -- Don't navigate out of a zoomed pane; zoom means "only this pane". tmux
+  -- only — herdr exposes no zoom state, so its adapter can't honour it.
   disable_when_zoomed = true,
 }
 
 -- ── Directions ─────────────────────────────────────────────────────────────
--- The `wincmd` letter paired with the direction name each multiplexer's CLI
--- uses, and the suffix vim-tmux-navigator puts on its commands. One row per
--- direction, so a direction is spelled once per vocabulary rather than once
--- per keymap.
+-- One row per direction: the `wincmd` letter, the name each multiplexer's CLI
+-- uses, and the suffix vim-tmux-navigator puts on its commands. So a direction
+-- is spelled once per vocabulary rather than once per keymap.
 local directions = {
   { wincmd = 'h', name = 'left', suffix = 'Left' },
   { wincmd = 'j', name = 'down', suffix = 'Down' },
@@ -121,10 +87,9 @@ local directions = {
 
 -- ── Shared motion helpers ──────────────────────────────────────────────────
 
---- Try the split motion. Returns true when the cursor actually moved.
---- winnr() unchanged means `wincmd` had nowhere to go — we were already at the
---- edge of the split layout. Neovim's window motions don't wrap, which is what
---- `policy.no_wrap` asks for, so nothing extra is needed to honour it here.
+--- Try the split motion. An unchanged winnr() means `wincmd` had nowhere to go,
+--- i.e. we were at the edge of the split layout. Neovim's window motions don't
+--- wrap, so `policy.no_wrap` needs nothing extra here.
 --- @param wincmd_dir string one of h/j/k/l
 --- @return boolean moved
 local function move_split(wincmd_dir)
@@ -143,33 +108,30 @@ local function save_before_leaving()
 end
 
 -- ── tmux ───────────────────────────────────────────────────────────────────
--- The NVIM half of a paired plugin: christoomey/vim-tmux-navigator, whose tmux
--- half is installed via TPM at ~/.tmux/plugins/vim-tmux-navigator and declared
--- in ~/.dotfiles/.tmux.conf. Both halves ship from the same repo, so they stay
--- version-matched.
+-- The Neovim half of christoomey/vim-tmux-navigator; the tmux half is
+-- installed via TPM and declared in ~/.dotfiles/.tmux.conf, same repo so the
+-- halves stay version-matched.
 --
--- How it works, in one paragraph, because the behaviour is otherwise
--- mystifying: tmux binds C-h/j/k/l globally and, on each press, runs a `ps`
--- check on the pane's tty to decide whether the pane is running (n)vim. If it
--- is, tmux FORWARDS the keystroke instead of switching panes. Neovim then tries
--- `wincmd h`; if the window number didn't change it was already at the edge, so
--- the plugin shells out to `tmux select-pane -L`. That is the entire protocol,
--- and the plugin owns all of it — which is why this adapter's focus() is one
--- line while herdr's is a hand-rolled equivalent.
+-- The protocol, because it is otherwise mystifying: tmux binds C-h/j/k/l
+-- globally and on each press runs a `ps` check on the pane's tty to see if it
+-- is running (n)vim. If so it FORWARDS the key rather than switching panes.
+-- Neovim tries `wincmd h`, and only if the window number didn't change (i.e.
+-- at the split edge) does the plugin shell out to `tmux select-pane -L`. The
+-- plugin owns all of it, which is why focus() below is one line and herdr's is
+-- hand-rolled.
 --
--- Practical consequence: if <C-h> ever stops switching, the `ps`-based
--- detection misfired. `:TmuxNavigatorProcessList` shows tmux exactly what it
--- sees, which is the fastest way to diagnose it.
+-- If <C-h> ever stops switching, that `ps` detection misfired —
+-- `:TmuxNavigatorProcessList` shows tmux what it sees.
 
--- How to recognise each agent from `tmux list-panes` output. Both agents set a
--- pane title, but only OpenCode keeps a recognisable process name:
+-- Recognising each agent in `tmux list-panes` output. Both set a pane title,
+-- but only OpenCode keeps a recognisable process name:
 --
 --   opencode  cmd=opencode   title=OpenCode
 --   claude    cmd=2.1.229    title=◐ Fix Claude default selection in split view
 --
 -- Claude Code renames its process to its own version number, so the version
--- pattern IS the signature. The title is checked first for both, since it is
--- the one field the agent sets deliberately.
+-- pattern IS the signature. Title is checked first — it's the field the agent
+-- sets deliberately.
 local agent_matchers = {
   claude = function(cmd, title)
     return title:find('claude', 1, true) or cmd:find('claude', 1, true) or cmd:match('^%d+%.%d+%.%d+$') ~= nil
@@ -179,9 +141,8 @@ local agent_matchers = {
   end,
 }
 
--- Find the pane running `agent`, preferring the current window over the rest of
--- the session over other sessions — so with two agents side by side in this
--- window you always hit the one you asked for. Returns nil when nothing matches.
+-- Find the pane running `agent`, preferring current window > rest of session >
+-- other sessions, so two agents side by side resolve to the near one.
 local function tmux_find(agent)
   local matches = agent_matchers[string.lower(agent)]
   local fmt = '#{pane_id}\t#{window_active}\t#{session_attached}\t#{pane_current_command}\t#{pane_title}'
@@ -204,10 +165,10 @@ local function tmux_find(agent)
   return best
 end
 
--- Delivery goes through a named tmux buffer rather than `send-keys` so the text
--- arrives as a bracketed paste (-p): the agent's prompt sees the newlines as
--- literal newlines instead of submitting on the first one. `-d` deletes the
--- buffer after pasting. A separate `send-keys Enter` submits.
+-- Via a named buffer rather than `send-keys`, so the text arrives as a bracketed
+-- paste (-p) and the agent's prompt reads newlines as newlines instead of
+-- submitting on the first one. `-d` deletes the buffer after; a separate
+-- send-keys Enter submits.
 local function tmux_send(agent, target, msg, quiet)
   local function tmux(args, stdin)
     local r = vim.system(vim.list_extend({ 'tmux' }, args), { stdin = stdin }):wait()
@@ -228,9 +189,8 @@ local function tmux_send(agent, target, msg, quiet)
   return tmux({ 'send-keys', '-t', target, 'Enter' })
 end
 
--- For tmux the two questions collapse into one: $TMUX is set only inside a tmux
--- pane, so "does tmux own this pane" and "is tmux reachable" have the same
--- answer. herdr is the case where they genuinely differ — see its adapter.
+-- For tmux the two questions collapse: $TMUX is set only inside a tmux pane, so
+-- owns_pane and reachable have the same answer. herdr is where they differ.
 local function tmux_present(env)
   return env.TMUX ~= nil and env.TMUX ~= ''
 end
@@ -241,11 +201,9 @@ local tmux_adapter = {
   owns_pane = tmux_present,
   reachable = tmux_present,
 
-  -- The plugin owns the whole motion, including the split-edge test and both
-  -- policy flags, so there is nothing to hand-roll. The command only exists
-  -- once the plugin's plugin/ file has sourced, which vim.pack defers until
-  -- after init.lua finishes — by the time a key is actually pressed, it is
-  -- there.
+  -- The plugin owns the whole motion, split-edge test and policy flags
+  -- included. The command only exists once its plugin/ file has sourced, which
+  -- vim.pack defers until after init.lua — but that's before any keypress.
   focus = function(dir)
     vim.cmd('TmuxNavigate' .. dir.suffix)
   end,
@@ -259,33 +217,24 @@ local tmux_adapter = {
 
 -- ── herdr ──────────────────────────────────────────────────────────────────
 -- herdr ships no navigator plugin, so this adapter inverts the tmux protocol.
+-- A herdr keybinding is unconditional — bind ctrl+h to focus_pane_left and
+-- herdr swallows the key, leaving Neovim splits unreachable. So the (n)vim
+-- check tmux does in its own plugin is hand-rolled in .config/herdr/herdr-nav.sh,
+-- which config.toml binds all four keys to:
 --
--- A herdr keybinding is unconditional: if config.toml binds ctrl+h to
--- focus_pane_left, herdr swallows the key and Neovim never sees it, so Neovim
--- splits would become unreachable. The (n)vim check that tmux does in its own
--- plugin is therefore hand-rolled on the herdr side, in
--- .config/herdr/herdr-nav.sh, which config.toml binds all four keys to:
+--   not running Neovim -> the script focuses the neighbouring herdr pane
+--   running Neovim     -> the script relays alt+h/j/k/l in, and focus() below
+--                         tries `wincmd h` first, shelling out to
+--                         `herdr pane focus` only at the split edge
 --
---   pane isn't running Neovim -> the script focuses the neighbouring herdr
---   pane, and Neovim is never involved.
---
---   pane IS running Neovim -> the script relays alt+h/j/k/l into the pane and
---   focus() below takes over: try `wincmd h` first, and only at the edge of the
---   split layout shell back out to `herdr pane focus`.
---
--- The relay deliberately uses the alt chord, never the ctrl one herdr is bound
--- to, so a relayed key can never retrigger herdr's own binding. The reasoning
--- is in the comment block in .config/herdr/config.toml.
---
--- `--current` resolves via $HERDR_PANE_ID, which herdr exports into every pane
--- and Neovim inherits, so no pane id bookkeeping is needed here.
+-- The relay uses the ALT chord, never the ctrl one herdr is bound to, so a
+-- relayed key can't retrigger herdr's own binding. `--current` resolves via
+-- $HERDR_PANE_ID, which herdr exports into every pane and Neovim inherits.
 
 -- No title/process sniffing: herdr classifies agents itself and reports a
--- canonical kind ("claude", "opencode") per pane, so `agent list` IS the lookup
--- table that agent_matchers has to reconstruct for tmux.
---
--- Ranking mirrors the tmux one — same tab beats same workspace beats anything
--- else — so two agents side by side resolve to the near one.
+-- canonical kind per pane, so `agent list` IS the table agent_matchers has to
+-- reconstruct for tmux. Ranking mirrors tmux's — same tab beats same workspace
+-- — so two agents side by side resolve to the near one.
 local function herdr_find(agent)
   local r = vim.system({ 'herdr', 'agent', 'list' }):wait()
   if r.code ~= 0 then
@@ -323,8 +272,8 @@ local function herdr_find(agent)
 end
 
 -- `agent prompt` submits text and Enter in one call, honouring the pane's live
--- bracketed-paste mode — so it needs none of the tmux buffer dance. No --wait:
--- we hand the prompt over and get out of the way.
+-- bracketed-paste mode, so none of the tmux buffer dance is needed. No --wait:
+-- hand the prompt over and get out of the way.
 local function herdr_send(_agent, target, msg, quiet)
   local r = vim.system({ 'herdr', 'agent', 'prompt', target, msg }):wait()
   if r.code ~= 0 and not quiet then
@@ -346,10 +295,9 @@ local herdr_adapter = {
     return env.HERDR_ENV == '1'
   end,
 
-  -- Fire and forget. vim.fn.system() would block the UI on every edge press for
-  -- the round trip to herdr's socket; vim.system() without :wait() does not. We
-  -- never read the result — if the pane focus fails there is nothing useful to
-  -- do about it, and focus has already visibly not moved.
+  -- Fire and forget: vim.fn.system() would block the UI on every edge press for
+  -- the round trip to herdr's socket. Nothing reads the result — if focus fails
+  -- there's nothing useful to do, and it has already visibly not moved.
   focus = function(dir)
     if move_split(dir.wincmd) then
       return
@@ -370,8 +318,8 @@ local herdr_adapter = {
 }
 
 -- ── No multiplexer ─────────────────────────────────────────────────────────
--- Bare terminal. The split motions still want the save-on-switch policy applied
--- for consistency, and there is nothing beyond the edge to move to.
+-- Bare terminal: split motions still apply the save-on-switch policy, and
+-- there's nothing beyond the edge to move to.
 local none_adapter = {
   name = 'window',
   owns_pane = function()
@@ -400,14 +348,11 @@ local adapters = { herdr_adapter, tmux_adapter }
 --- Which multiplexer owns the pane this Neovim is running in.
 --- Pure: pass any table to ask about that environment instead of this process.
 ---
---- herdr wins when both are present, preserving what the two separate modules
---- did before (ak/herdr.lua loaded last and overwrote the tmux maps). The
---- nesting it describes — a tmux session inside a herdr pane — is a case where
---- neither set of maps gets a fair hearing anyway: herdr is the OUTER
---- multiplexer, so it consumes ctrl+h first, and herdr-nav.sh sees `tmux` as
---- the pane's foreground process, not nvim, so it focuses the neighbouring
---- herdr pane and the keystroke never reaches Neovim at all. Agent delivery
---- still works in that setup, which is what backends_for() is for.
+--- herdr wins when both are present. In that nesting (tmux inside a herdr pane)
+--- navigation is herdr's regardless: it is the OUTER multiplexer so it consumes
+--- ctrl+h first, and herdr-nav.sh sees `tmux` as the foreground process rather
+--- than nvim, so the keystroke never reaches Neovim. Agent delivery still works
+--- there — that is what backends_for() is for.
 --- @param env table
 --- @return table adapter never nil — falls back to none_adapter
 local function adapter_for(env)
@@ -421,13 +366,10 @@ end
 
 --- Adapters worth trying for agent delivery, nearest first.
 ---
---- A LIST rather than a single pick because "inside herdr" doesn't prove the
---- agents are herdr's: nvim can sit in a tmux session nested inside a herdr
---- pane, with claude/opencode in tmux panes. herdr is asked first, and when it
---- has nothing we fall through instead of hard-failing a setup that worked
---- before.
----
---- Private: see the note on backends() at the top of this file.
+--- A LIST rather than one pick: "inside herdr" doesn't prove the agents are
+--- herdr's — nvim can sit in a nested tmux session with the agents in tmux
+--- panes. herdr is asked first and we fall through when it has nothing.
+--- Private; see the note on backends() at the top of this file.
 --- @param env table
 --- @return table[]
 local function backends_for(env)
@@ -449,15 +391,10 @@ end
 
 --- Is there any multiplexer we could deliver a message through?
 ---
---- Exists so a caller can bail BEFORE doing expensive or interactive work —
---- ak/agent.lua checks this before prompting you for a question, rather than
---- taking the question and then admitting it has nowhere to send it.
+--- Lets a caller bail BEFORE expensive or interactive work — ak/agent.lua checks
+--- this before prompting for a question rather than after.
 ---
---- Not the same question as detect(): a bare `nil` from detect means no
---- multiplexer owns this pane, while this asks whether one is within reach at
---- all. The case where they genuinely diverge is $HERDR_ENV set with neither
---- $HERDR_PANE_ID nor $TMUX — detect() -> nil, reachable() -> true. The full
---- matrix, checked:
+--- NOT the same question as detect(), which asks who owns this pane:
 ---
 ---   TMUX + HERDR_ENV + HERDR_PANE_ID  detect 'herdr'  reachable true
 ---   TMUX + HERDR_ENV                  detect 'tmux'   reachable true
@@ -473,11 +410,10 @@ end
 -- The ladder that gets a message to an agent, and the only consumer of an
 -- adapter's find/send/fallback fields.
 --
--- $<AGENT>_PANE (CLAUDE_PANE, OPENCODE_PANE) pins a destination pane: a tmux
--- target-pane ("%3", "session:win.0") or a herdr pane id ("wF:p6"). The two
--- formats aren't interchangeable, so a pinned target a backend rejects is not
--- fatal — we move on rather than fail on a stale export left in a shell
--- profile. Unset, we go straight to discovery.
+-- $<AGENT>_PANE (CLAUDE_PANE, OPENCODE_PANE) pins a destination: a tmux
+-- target-pane ("%3", "session:win.0") or a herdr pane id ("wF:p6"). The formats
+-- aren't interchangeable, so a rejected pin is not fatal — we move on rather
+-- than fail on a stale export in a shell profile.
 
 --- Get `msg` to `agent`, wherever it is running.
 ---
@@ -485,14 +421,11 @@ end
 ---
 --- @param agent string 'Claude', 'OpenCode' — matched case-insensitively
 --- @param msg string
---- @param backends table[]|nil adapters to try, nearest first; defaults to the
----        ones reachable from this process. Pass fakes to exercise the ladder
----        without a multiplexer.
+--- @param backends table[]|nil adapters to try, nearest first; defaults to those
+---        reachable from this process. Pass fakes to exercise the ladder.
 --- @return boolean ok
---- @return string|nil err a message to show; nil when the failure was already
----         reported at the point it happened (an adapter notifies its own CLI
----         errors, with the actual stderr, which beats anything we could say
----         about it here)
+--- @return string|nil err nil when the adapter already reported it with the
+---         actual stderr, which beats anything we could say here
 function M.deliver(agent, msg, backends)
   backends = backends or backends_for(vim.env)
   if #backends == 0 then
@@ -502,12 +435,10 @@ function M.deliver(agent, msg, backends)
   local env_name = string.upper(agent) .. '_PANE'
   local pinned = vim.env[env_name]
 
-  -- EVERY backend gets a quiet try at the pinned target, not just the nearest
-  -- one: with nvim in a tmux session inside a herdr pane both are reachable,
-  -- and a $CLAUDE_PANE holding a tmux id is only meaningful to the tmux
-  -- adapter — which is never backends[1], since herdr sorts first. Quiet,
-  -- because a rejection here is expected and handled, not an error to put in
-  -- front of you.
+  -- EVERY backend gets a try, not just the nearest: in nested setups both are
+  -- reachable and a $CLAUDE_PANE holding a tmux id only means anything to the
+  -- tmux adapter, which is never backends[1] since herdr sorts first. Quiet,
+  -- because a rejection here is expected and handled.
   if pinned then
     for _, backend in ipairs(backends) do
       if backend.send(agent, pinned, msg, true) then
@@ -544,23 +475,18 @@ end
 
 -- ── Setup ──────────────────────────────────────────────────────────────────
 
---- Apply the policy and bind the navigation keys.
----
---- Call this from init.lua. Load order no longer matters: this is the only
---- place in the config that binds <C-h/j/k/l>, so there is no longer a race
---- between a tmux module and a herdr module to bind them last — which is what
---- the ordering comments in init.lua used to be protecting.
+--- Apply the policy and bind the navigation keys. Call from init.lua; load
+--- order doesn't matter, since this is the only place that binds <C-h/j/k/l>.
 function M.setup()
   -- Set unconditionally, including under herdr and in a bare terminal.
   --
-  -- `no_mappings` is the load-bearing one: without it, vim-tmux-navigator's
+  -- `no_mappings` is the load-bearing one: without it vim-tmux-navigator's
   -- plugin/ file installs its own <C-h/j/k/l> maps when it sources — which
-  -- happens AFTER init.lua finishes, so it would clobber whatever we bind
-  -- below no matter what order this runs in. The plugin is installed on every
-  -- machine this config runs on, so the flag has to be set on every machine.
+  -- happens AFTER init.lua finishes, clobbering whatever we bind below no
+  -- matter what order this runs in.
   --
-  -- The rest are read by the plugin at source time and only mean anything under
-  -- tmux, but setting them always keeps the policy in one branch-free block.
+  -- The rest are read at source time and only mean anything under tmux, but
+  -- setting them always keeps the policy in one branch-free block.
   vim.g.tmux_navigator_no_mappings = 1
   vim.g.tmux_navigator_save_on_switch = M.policy.save_on_switch and 1 or 0
   vim.g.tmux_navigator_no_wrap = M.policy.no_wrap and 1 or 0
@@ -569,14 +495,11 @@ function M.setup()
   local backend = adapter_for(vim.env)
   local map = vim.keymap.set
 
-  -- Normal mode only.
-  --
-  -- No conflicts with these, checked:
-  --   blink.cmp binds <C-h>/<C-l> for snippet jumps — INSERT mode only.
-  --   the snacks picker binds <C-h> to edit_split — buffer-local inside the
-  --   picker, which correctly shadows navigation while a picker is open.
-  --   keymaps.lua binds <A-h/j/k/l> — INSERT mode only, so the relay chords
-  --   below don't collide with it.
+  -- Normal mode only, which is what keeps these clear of:
+  --   blink.cmp's <C-h>/<C-l> snippet jumps      (insert mode)
+  --   keymaps.lua's <A-h/j/k/l> cursor movement  (insert mode)
+  --   the snacks picker's <C-h> edit_split       (buffer-local, and correctly
+  --                                               shadows navigation while open)
   for _, dir in ipairs(directions) do
     local handler = function()
       backend.focus(dir)
@@ -585,14 +508,11 @@ function M.setup()
 
     map('n', '<C-' .. dir.wincmd .. '>', handler, { desc = desc })
 
-    -- Under herdr, <M-h/j/k/l> is what actually fires in normal use — it is
-    -- the chord herdr-nav.sh relays in. herdr's send-keys writes it straight
-    -- into the pane's PTY, so the relay works regardless of how the outer
-    -- terminal treats Option; that is why this landing pad predates
-    -- `macos-option-as-alt = left` in ghostty/config and does not depend on it.
-    --
-    -- With that option now set, left Option+h ALSO reaches Neovim as <M-h> and
-    -- lands here. Same handler, same result — you just get a second way in.
+    -- Under herdr this is the chord that actually fires: herdr-nav.sh relays it
+    -- in via send-keys, straight into the pane's PTY, so it works regardless of
+    -- how the outer terminal treats Option. With `macos-option-as-alt = left`
+    -- in ghostty/config, left Option+h reaches Neovim as <M-h> too — same
+    -- handler either way.
     if backend.relay_chord then
       map('n', '<M-' .. dir.wincmd .. '>', handler, { desc = desc })
     end

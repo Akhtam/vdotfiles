@@ -16,18 +16,14 @@ npairs.setup({
   -- Consult the syntax tree before inserting a pair, so quotes and brackets
   -- aren't auto-closed where they'd be wrong.
   --
-  -- Compatibility note, since this is the setting most likely to break:
-  -- nvim-autopairs' treesitter code uses CORE apis only —
-  -- vim.treesitter.get_node(), get_parser(), is_in_node_range(). It does NOT
-  -- use nvim-treesitter's old ts_utils module, which the main-branch rewrite
-  -- removed. Verified against both sources; check_ts is safe here.
+  -- Safe with the main-branch treesitter rewrite: nvim-autopairs uses core APIs
+  -- only (vim.treesitter.get_node/get_parser/is_in_node_range), not the old
+  -- ts_utils module the rewrite removed.
   check_ts = true,
 
   ts_config = {
-    -- Values are treesitter node types where a pair should NOT be added.
-    --
-    -- In a JS template string you type backtick-delimited text containing
-    -- apostrophes constantly (`it's`), and auto-closing those is pure noise.
+    -- Node types where a pair should NOT be added. Template strings contain
+    -- apostrophes constantly (`it's`), and auto-closing those is noise.
     javascript = { 'template_string' },
     typescript = { 'template_string' },
     lua = { 'string' },
@@ -57,15 +53,13 @@ npairs.setup({
   break_undo = true,
 
   -- ── fast_wrap ────────────────────────────────────────────────────────────
-  -- <A-e> in insert mode wraps the next word in the pair you're on. Genuinely
-  -- useful for `foo` -> `(foo)` without leaving insert.
+  -- <A-e> wraps the next word in the pair you're on: `foo` -> `(foo)` without
+  -- leaving insert. Left Option only; settled in ghostty/config.
   --
-  -- Left Option only; settled in ghostty/config, not here.
-  --
-  -- Shared with blink.cmp, which binds <A-e> to `{ 'hide', 'fallback' }` — so
-  -- with the completion menu open the key dismisses it, and otherwise falls
-  -- through to fast_wrap. That works because blink captures whatever <A-e>
-  -- already meant, and plugins/init.lua loads this file before blink's.
+  -- SHARED with blink.cmp, which binds <A-e> to `{ 'hide', 'fallback' }`, so the
+  -- key dismisses the menu when open and falls through to fast_wrap otherwise.
+  -- That only works because plugins/init.lua loads this file BEFORE blink's —
+  -- blink captures whatever <A-e> already meant.
   fast_wrap = {
     map = '<A-e>',
     chars = { '{', '[', '(', '"', "'", '`' },
@@ -78,15 +72,10 @@ npairs.setup({
 })
 
 -- ── Deliberately NOT wired: completion integration ─────────────────────────
--- The classic snippet for this is
+-- The classic `cmp_autopairs.on_confirm_done()` snippet exists to make nvim-cmp
+-- add brackets on accepting a function. blink.cmp does that itself via
+-- completion.accept.auto_brackets (plugins/blink.lua), and more precisely —
+-- it checks the item's LSP kind to decide whether the thing is callable.
 --
---   local cmp_autopairs = require('nvim-autopairs.completion.cmp')
---   cmp.event:on('confirm_done', cmp_autopairs.on_confirm_done())
---
--- That exists to make nvim-cmp add brackets when you accept a function. We're
--- on blink.cmp, which does that itself via completion.accept.auto_brackets
--- (set in plugins/blink.lua) — and it's smarter about it, using the item's
--- LSP kind and semantic tokens to decide whether the thing is callable.
---
--- Wiring both is where the "why did I get foo(())" reports come from. blink
--- owns completion-accept; nvim-autopairs owns manual typing. No overlap.
+-- Wiring both is where "why did I get foo(())" comes from. blink owns
+-- completion-accept; nvim-autopairs owns manual typing. No overlap.

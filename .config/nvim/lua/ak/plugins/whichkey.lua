@@ -1,7 +1,7 @@
 -- lua/ak/plugins/whichkey.lua
 --
 -- Shows a popup of possible completions after a partial keymap. With the
--- number of <leader> groups this config now has — thirteen, listed in the
+-- number of <leader> groups this config now has — fourteen, listed in the
 -- add() call below — it's the difference between remembering them and
 -- rediscovering them.
 
@@ -25,7 +25,11 @@ require('which-key').setup({
 require('which-key').add({
   { '<leader>f', group = 'find (picker)' },
   { '<leader>e', group = 'explorer (snacks)' },
-  { '<leader>d', group = 'diagnostics' },
+  -- <leader>d is debug, NOT diagnostics — diagnostics moved to <leader>x when
+  -- nvim-dap arrived and wanted the conventional prefix. See the note in
+  -- diagnostics.lua explaining the move.
+  { '<leader>d', group = 'debug (dap)' },
+  { '<leader>x', group = 'diagnostics' },
   { '<leader>T', group = 'tabs' },
   { '<leader>s', group = 'splits' },
   { '<leader>n', group = 'noice / numbers' },

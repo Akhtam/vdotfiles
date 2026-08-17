@@ -18,13 +18,11 @@
 
 -- ── Defaults applied to every server ───────────────────────────────────────
 vim.lsp.config('*', {
-  -- Tell servers what this client can do. Neovim supplies a solid baseline;
-  -- blink.cmp extends it with the completion features it implements
-  -- (snippet support, resolve support, insert-replace edits). Without this,
-  -- servers downgrade to plain-text completions with no snippets.
+  -- What this client can do. blink.cmp extends Neovim's baseline with snippet,
+  -- resolve and insert-replace support; without it servers downgrade to
+  -- plain-text completions.
   --
-  -- Guarded: this file must still load if blink is absent or broken, otherwise
-  -- a completion plugin failure takes LSP down with it.
+  -- Guarded so a broken or absent blink doesn't take LSP down with it.
   capabilities = (function()
     local ok, blink = pcall(require, 'blink.cmp')
     if ok and blink.get_lsp_capabilities then
@@ -69,8 +67,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end
 
     -- ── Keymaps ──
-    -- ONLY what 0.12 doesn't already provide. Verified against `nvim --clean`;
-    -- these are global defaults created unconditionally at startup:
+    -- ONLY what 0.12 doesn't already provide. These are global defaults created
+    -- unconditionally at startup:
     --
     --   gra  code action (n+v)     grn  rename        grr  references
     --   gri  implementation        grt  type def      grx  codelens run
@@ -82,19 +80,15 @@ vim.api.nvim_create_autocmd('LspAttach', {
     map('n', 'gd', vim.lsp.buf.definition, 'Go to definition')
     map('n', 'gD', vim.lsp.buf.declaration, 'Go to declaration')
 
-    -- Workspace-wide symbol search. gO covers the current document only, and
-    -- in a Rails app "where is UserMailer" is a workspace question.
-    --
-    -- MOVED from <leader>ws to <leader>wy: auto-session claims <leader>ws for
-    -- its session picker. Two maps under the same prefix would both work, but
-    -- <leader>ws would stall for 'timeoutlen' waiting to see which you meant.
+    -- Workspace-wide symbol search; gO covers the current document only.
+    -- <leader>wy not <leader>ws — auto-session owns ws, and both under one
+    -- prefix would stall for 'timeoutlen' on every press.
     map('n', '<leader>wy', vim.lsp.buf.workspace_symbol, 'Workspace symbols')
 
     -- ── Inlay hints ──
-    -- Parameter names and inferred types rendered inline. Genuinely valuable
-    -- in TypeScript, where `const x = useMemo(...)` tells you nothing about
-    -- what x is. Off by default because they reflow your code visually and
-    -- that's disorienting until you want them.
+    -- Parameter names and inferred types inline — valuable in TypeScript, where
+    -- `const x = useMemo(...)` tells you nothing about x. Off by default: they
+    -- reflow the code visually.
     if client:supports_method('textDocument/inlayHint') then
       map('n', '<leader>th', function()
         local enabled = vim.lsp.inlay_hint.is_enabled({ bufnr = buf })
@@ -103,20 +97,18 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end
 
     -- ── Document colour ──
-    -- Renders actual colour swatches for colour values. With tailwindcss this
-    -- means `bg-slate-800` shows the colour beside it. Built into 0.12 — this
-    -- used to require nvim-colorizer or tailwind-tools.
+    -- Colour swatches beside colour values — with tailwindcss, `bg-slate-800`
+    -- shows its colour. Built into 0.12.
     if client:supports_method('textDocument/documentColor') then
-      -- Second arg is a FILTER TABLE, not a bufnr. All four of these
-      -- vim.lsp.*.enable() functions share the signature
-      -- (enable: boolean, filter: table) — passing a bare number raises
-      -- "filter: expected table, got number" from vim/lsp/_capability.lua.
+      -- Second arg is a FILTER TABLE, not a bufnr. All four vim.lsp.*.enable()
+      -- functions take (enable: boolean, filter: table); a bare number raises
+      -- "filter: expected table, got number".
       vim.lsp.document_color.enable(true, { bufnr = buf })
     end
 
     -- ── Linked editing ──
     -- Rename a JSX/HTML opening tag and the closing tag follows. Built into
-    -- 0.12; this is what nvim-ts-autotag existed to do.
+    -- 0.12; what nvim-ts-autotag existed to do.
     if client:supports_method('textDocument/linkedEditingRange') then
       vim.lsp.linked_editing_range.enable(true, { bufnr = buf })
     end
@@ -125,29 +117,23 @@ vim.api.nvim_create_autocmd('LspAttach', {
     -- Servers that publish lenses (ruby-lsp does, for test blocks) show them
     -- inline; grx runs the one under the cursor.
     --
-    -- Use enable(), NOT refresh(). `:h deprecated` in 0.12 lists
-    -- vim.lsp.codelens.refresh() as superseded by
-    -- vim.lsp.codelens.enable(true) — and enable() manages its own refresh
-    -- cycle, so the BufEnter/InsertLeave/TextChanged autocmds that older
-    -- configs wire up by hand are now redundant.
+    -- enable(), NOT refresh() — the latter is deprecated in 0.12, and enable()
+    -- manages its own refresh cycle, so the BufEnter/InsertLeave/TextChanged
+    -- autocmds older configs wire up by hand are redundant.
     if client:supports_method('textDocument/codeLens') then
       vim.lsp.codelens.enable(true, { bufnr = buf })
     end
 
-    -- ── Document highlight ──
-    -- Underline other occurrences of the symbol under the cursor. Handled by
-    -- snacks.nvim's `words` module now (plugins/snacks.lua) instead of a
-    -- hand-rolled CursorHold/CursorMoved pair here — same
-    -- `textDocument/documentHighlight` request, plus `]]`/`[[` jump between
-    -- occurrences (plugins/words.lua). No per-client wiring needed: `words`
-    -- checks `supports_method` itself on every cursor move.
+    -- Document highlight is deliberately absent: snacks.nvim's `words` module
+    -- makes the same documentHighlight request and checks supports_method on
+    -- every cursor move, so no per-client wiring belongs here. Adding one back
+    -- gives two listeners fighting over the highlight.
   end,
 })
 
 -- ── Cleanup on detach ──────────────────────────────────────────────────────
--- Clears any reference highlight left behind by the detaching client (from
--- `words`, see plugins/snacks.lua) — otherwise a stale underline can survive
--- a :LspRestart with no client left to ever clear it.
+-- Clears reference highlights left by the detaching client; otherwise a stale
+-- underline survives :LspRestart with no client left to clear it.
 vim.api.nvim_create_autocmd('LspDetach', {
   group = vim.api.nvim_create_augroup('ak_lsp_detach', { clear = true }),
   callback = function()

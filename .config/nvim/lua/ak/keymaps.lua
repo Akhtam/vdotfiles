@@ -1,14 +1,11 @@
 -- lua/ak/keymaps.lua
 --
--- Plugin-independent keymaps only. Anything that drives a plugin (picker,
--- gitsigns, neotest, dap, LSP) lives in that plugin's own file, so a binding is
--- always next to the thing it controls. The same rule applies to a map with a
--- real implementation behind it even when no plugin is involved: <leader>ac /
--- <leader>ao (ask Claude/OpenCode about the selection) live in ak/agent.lua.
--- What's left here is maps whose whole implementation is one <cmd> string.
+-- Plugin-independent keymaps only: anything driving a plugin lives in that
+-- plugin's file, so a binding sits next to what it controls. Same rule for maps
+-- with a real implementation behind them — <leader>ac / <leader>ao are in
+-- ak/agent.lua. What's left here is maps whose implementation is one <cmd>.
 --
--- NOT DEFINED HERE, because Neovim 0.12 already ships them as defaults —
--- redefining them would be pure cargo cult (verified with `nvim --clean`):
+-- NOT DEFINED HERE, because Neovim 0.12 ships them as defaults:
 --
 --   grn   rename symbol            gra   code action
 --   grr   find references          gri   go to implementation
@@ -24,14 +21,10 @@ map("n", "<leader>sh", "<C-w>s", { desc = "Split window horizontally" })
 map("n", "<leader>se", "<C-w>=", { desc = "Make splits equal size" })
 map("n", "<leader>sx", "<cmd>close<CR>", { desc = "Close current split" })
 
--- <C-h/j/k/l> split navigation lives in ak/mux.lua, not here. Those four keys
--- are a superset of <C-w>h/j/k/l: identical between Neovim splits, and
--- additionally crossing into the neighbouring tmux/herdr pane at the window
--- edge. Which of those two it talks to is decided once, inside ak.mux.setup().
---
--- Defining them here as well would just shadow, or be shadowed by, that
--- module depending on load order — so they're defined once, next to the
--- machinery that gives them their extra behaviour.
+-- <C-h/j/k/l> split navigation lives in ak/mux.lua: it's a superset of
+-- <C-w>h/j/k/l that also crosses into the neighbouring tmux/herdr pane at the
+-- window edge. Defining them here too would shadow (or be shadowed by) that
+-- module depending on load order.
 
 -- ── Tabs ───────────────────────────────────────────────────────────────────
 -- NOTE: <leader>t is claimed by neotest (its maps live in neotest.lua), so
@@ -46,24 +39,19 @@ map("n", "<leader>Tf", "<cmd>tabnew %<CR>", { desc = "Open current buffer in new
 map("n", "<leader>nr", "<cmd>set relativenumber!<CR>", { desc = "Toggle relative number" })
 
 -- ── Insert-mode cursor movement ────────────────────────────────────────────
--- LEFT Option only. Whether Option reaches Neovim as Alt at all is a terminal
--- decision, not a Neovim one, and it is made once in
--- ~/.dotfiles/.config/ghostty/config (`macos-option-as-alt = left`) — right
--- Option still types é, #, and friends.
+-- LEFT Option only. Whether Option arrives as Alt is a terminal decision, made
+-- in ghostty/config (`macos-option-as-alt = left`) — right Option still types
+-- é, # and friends.
 map("i", "<A-h>", "<Left>", { noremap = true })
 map("i", "<A-j>", "<Down>", { noremap = true })
 map("i", "<A-k>", "<Up>", { noremap = true })
 map("i", "<A-l>", "<Right>", { noremap = true })
 
 -- ── Visual mode ────────────────────────────────────────────────────────────
--- Move the selected lines up/down. Breakdown of `:m '>+1<CR>gv=gv`:
---   :m '>+1  move the selection to just after its last line ('> is the end mark)
---   gv       reselect the block you just moved (`:m` drops the selection)
---   =        re-indent it to fit its new context
---   gv       reselect again, since `=` also drops the selection
--- The `=` is what makes this work in nested JSX and Ruby blocks: dragging a
--- line into or out of a block fixes its indentation automatically, using the
--- bundled filetype indent scripts.
+-- Move selected lines. `:m '>+1<CR>gv=gv` reads as: move past the end mark,
+-- reselect (`:m` drops the selection), re-indent, reselect again (`=` drops it
+-- too). The `=` is what makes this work in nested JSX and Ruby blocks —
+-- dragging a line into or out of a block fixes its indentation.
 map("v", "J", ":m '>+1<CR>gv=gv", { desc = "Move selection down" })
 map("v", "K", ":m '<-2<CR>gv=gv", { desc = "Move selection up" })
 
@@ -73,14 +61,12 @@ map("v", "<", "<gv", { desc = "Indent left, keep selection" })
 map("v", ">", ">gv", { desc = "Indent right, keep selection" })
 
 -- ── Search ─────────────────────────────────────────────────────────────────
--- Clear search highlight. 'hlsearch' is on by default in Neovim and stays lit
--- until the next search; this gives it an off switch on a key you already hit
--- reflexively.
+-- 'hlsearch' stays lit until the next search; this puts an off switch on a key
+-- you already hit reflexively.
 map("n", "<Esc>", "<cmd>nohlsearch<CR>", { desc = "Clear search highlight" })
 
 -- Keep the cursor centred while cycling matches and half-page scrolling, so
--- your eyes stay in one place instead of tracking up and down the screen.
--- `zv` additionally opens any fold the match landed inside.
+-- your eyes stay in one place. `zv` also opens any fold the match landed in.
 map("n", "n", "nzzzv", { desc = "Next match, centred" })
 map("n", "N", "Nzzzv", { desc = "Prev match, centred" })
 map("n", "<C-d>", "<C-d>zz", { desc = "Half page down, centred" })
@@ -88,8 +74,8 @@ map("n", "<C-u>", "<C-u>zz", { desc = "Half page up, centred" })
 
 -- ── System clipboard ───────────────────────────────────────────────────────
 -- Explicit opt-in, because options.lua deliberately does NOT set
--- clipboard=unnamedplus. `"+` is the system clipboard register; every `d`, `x`
--- and `c` you type stays in the unnamed register and leaves it alone.
+-- clipboard=unnamedplus: every `d`, `x` and `c` stays in the unnamed register
+-- and leaves `"+` alone.
 map({ "n", "v" }, "<leader>y", '"+y', { desc = "Yank to system clipboard" })
 map("n", "<leader>Y", '"+Y', { desc = "Yank line to system clipboard" })
 map({ "n", "v" }, "<leader>p", '"+p', { desc = "Paste from system clipboard" })

@@ -85,10 +85,17 @@ lualine.setup({
         'snacks_picker_input',
         'snacks_picker_list',
         'snacks_picker_preview',
+        -- All six panes of nvim-dap-ui's default layout — scopes/breakpoints/
+        -- stacks/watches in the sidebar, repl/console along the bottom. Miss
+        -- one and that pane alone draws a statusline the other five suppress.
+        -- Note the REPL's filetype is 'dap-repl' (nvim-dap owns that buffer),
+        -- not 'dapui_repl' like the rest.
         'dapui_scopes',
+        'dapui_breakpoints',
         'dapui_stacks',
         'dapui_watches',
         'dapui_console',
+        'dap-repl',
       },
     },
   },

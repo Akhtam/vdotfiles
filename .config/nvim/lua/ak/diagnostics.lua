@@ -16,42 +16,34 @@ local severity = vim.diagnostic.severity
 
 vim.diagnostic.config({
   -- ── Inline message display ───────────────────────────────────────────────
-  -- End-of-line virtual text on every line with a problem, including the one
-  -- the cursor is on.
+  -- End-of-line virtual text on every problem line, cursor line included. The
+  -- trade: long messages truncate at the window edge, which TypeScript generic
+  -- errors routinely do. Two ways to read the rest:
   --
-  -- The trade you're accepting: a long message is truncated at the window
-  -- edge. TypeScript generic errors ("Type 'X' is not assignable to type 'Y'"
-  -- with inferred type parameters) routinely run past it. Two ways to read
-  -- the rest without changing this setting:
+  --   <leader>xe   float with the full text (source included)
+  --   <leader>xv   toggle to virtual_lines, message on its own lines below
   --
-  --   <leader>de   float with the full text (source included)
-  --   <leader>dv   toggle to virtual_lines, which renders the whole message
-  --                on its own lines below the current one
+  -- KEEP IN SYNC with the virtual_text table in the <leader>xv toggle below,
+  -- which restates these two values.
   virtual_text = {
-    -- Leading marker so the message is visually separate from the code rather
-    -- than reading as a continuation of the line.
+    -- Leading marker so the message reads as separate from the code rather
+    -- than as a continuation of the line.
     prefix = '●',
     spacing = 2,
 
-    -- NOTE: `severity_sort` does NOT belong here. It looks like it should —
-    -- but in vim/diagnostic.lua it's a field of Opts.Float and of the
-    -- top-level Opts, read from the merged options inside M.show(). Nested
-    -- under virtual_text it is silently ignored.
-    --
-    -- The behaviour it would imply (most severe diagnostic wins the line) is
-    -- already provided by the top-level `severity_sort = true` further down.
+    -- `severity_sort` does NOT belong here — it's a field of the top-level
+    -- Opts (and Opts.Float), and nested under virtual_text it is silently
+    -- ignored. The top-level `severity_sort = true` below does the job.
   },
 
   -- Off, so the current line doesn't render the same diagnostic twice — once
-  -- beside it and once beneath. <leader>dv swaps which of the two is active.
+  -- beside it and once beneath. <leader>xv swaps which of the two is active.
   virtual_lines = false,
 
   -- ── Gutter signs ─────────────────────────────────────────────────────────
-  -- The 0.11+ table form. The old `vim.fn.sign_define('DiagnosticSignError',…)`
-  -- approach still works but is superseded; this is the supported spelling.
-  --
-  -- Letters rather than nerd-font glyphs: they render in any font, and they
-  -- stay legible in the sign column at the one-cell width it gives them.
+  -- The 0.11+ table form, which supersedes vim.fn.sign_define('DiagnosticSign…').
+  -- Letters rather than nerd-font glyphs: they render in any font and stay
+  -- legible at the sign column's one-cell width.
   signs = {
     text = {
       [severity.ERROR] = 'E',
@@ -70,63 +62,59 @@ vim.diagnostic.config({
   underline = true,
 
   -- ── Ordering ─────────────────────────────────────────────────────────────
-  -- When several diagnostics share a line, show the most severe. Without this
-  -- a stylistic rubocop hint can mask a genuine error on the same line, since
-  -- the last one to arrive wins rather than the worst one.
+  -- Most severe wins a shared line. Without this a stylistic rubocop hint can
+  -- mask a real error, since the last to arrive wins rather than the worst.
   severity_sort = true,
 
-  -- Already the default; stated explicitly because it's the setting people
-  -- reach for when diagnostics feel "laggy", and turning it ON is almost
-  -- always the wrong fix — it makes errors flicker as you type an identifier.
+  -- Already the default, stated because it's what people reach for when
+  -- diagnostics feel "laggy" — turning it ON makes errors flicker as you type.
   update_in_insert = false,
 
   -- ── Hover float ──────────────────────────────────────────────────────────
   float = {
-    -- `border` is omitted on purpose: options.lua sets winborder = 'rounded'
-    -- globally in 0.12, which covers every float including this one.
-    source = true, -- ALWAYS show which tool produced the message.
+    -- `border` omitted on purpose: options.lua sets winborder = 'rounded'
+    -- globally, which covers every float including this one.
+    --
+    -- source = true costs horizontal space but earns it here: a Ruby buffer can
+    -- have ruby_lsp AND rubocop-via-nvim-lint attached, a TSX buffer vtsls AND
+    -- eslint, and "which tool said that?" decides whether you edit
+    -- .rubocop.yml, .eslintrc or tsconfig.json.
+    source = true,
     header = '',
     prefix = '',
   },
 
   -- ── ]d / [d behaviour ────────────────────────────────────────────────────
-  -- These maps are built in as of 0.11 (keymaps.lua deliberately doesn't
-  -- redefine them); this configures what they do.
+  -- Built-in maps as of 0.11 (keymaps.lua deliberately doesn't redefine them);
+  -- this configures what they do.
   jump = {
-    -- Pop the float on arrival. Otherwise ]d moves the cursor and you still
-    -- have to press something to find out what's wrong.
+    -- Pop the float on arrival, so ]d doesn't just move the cursor and leave
+    -- you to press something else to find out what's wrong.
     float = true,
     wrap = true,
   },
 })
 
--- `source = true` above deserves justification, because it costs horizontal
--- space on every message. In this config a single Ruby buffer can have
--- ruby_lsp AND rubocop-via-nvim-lint attached, and a TSX buffer can have vtsls
--- AND eslint. When something reports a complaint you disagree with, the first
--- question is always "which tool said that?" — because the answer determines
--- whether you edit .rubocop.yml, .eslintrc, or tsconfig.json.
-
 -- ── Keymaps ────────────────────────────────────────────────────────────────
 local map = vim.keymap.set
 
--- Full diagnostic float for the current line, on demand. Useful when
--- virtual_lines is toggled off, or to read a message without moving the cursor.
+-- All four maps here live under <leader>x, not <leader>d: dap owns <leader>d
+-- (the conventional debug prefix, and it has nine maps wanting a short one).
 --
--- MOVED from <leader>e to <leader>de. <leader>e is the file explorer's
--- namespace (<leader>ee/<leader>ef, see explorer.lua) — living under
--- <leader>d groups this with the other diagnostic maps anyway.
-map('n', '<leader>de', vim.diagnostic.open_float, { desc = 'Show line diagnostics' })
+-- Full diagnostic float for the current line, on demand — for when
+-- virtual_lines is off, or to read a message without moving the cursor.
+map('n', '<leader>xe', vim.diagnostic.open_float, { desc = 'Show line diagnostics' })
 
 -- Send every diagnostic in the buffer to the location list. The quickfix maps
 -- in keymaps.lua (]q / [q) then walk them. `setloclist` is per-window, so this
 -- doesn't clobber a quickfix list you're already working through.
-map('n', '<leader>dl', vim.diagnostic.setloclist, { desc = 'Diagnostics to loclist' })
+map('n', '<leader>xl', vim.diagnostic.setloclist, { desc = 'Diagnostics to loclist' })
 
 -- Swap between full-message (virtual_lines) and end-of-line (virtual_text)
--- rendering. Handy when you're reading a wide diff and the extra lines shift
--- code around more than the truncation costs you.
-map('n', '<leader>dv', function()
+-- rendering, for when the extra lines shift code around more than truncation
+-- costs you. NOTE the virtual_text table below restates prefix/spacing from the
+-- config at the top of this file — change one and change both.
+map('n', '<leader>xv', function()
   local cfg = vim.diagnostic.config()
   local using_lines = cfg.virtual_lines ~= false
   vim.diagnostic.config({
@@ -138,7 +126,7 @@ end, { desc = 'Toggle diagnostic display style' })
 
 -- Silence diagnostics entirely for the current buffer. For the times you're
 -- mid-refactor and the errors are all things you already know about.
-map('n', '<leader>dt', function()
+map('n', '<leader>xt', function()
   local enabled = vim.diagnostic.is_enabled({ bufnr = 0 })
   vim.diagnostic.enable(not enabled, { bufnr = 0 })
   vim.notify('Diagnostics ' .. (enabled and 'disabled' or 'enabled') .. ' for buffer')

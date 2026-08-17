@@ -15,26 +15,20 @@
 --
 -- so the agent gets the file/line context along with the code.
 --
--- This module lives outside keymaps.lua for the same reason a plugin's maps do:
--- the implementation behind the two keys — capturing the selection, formatting
--- the message — is here, next to the bindings it backs. keymaps.lua is for maps
--- whose whole implementation is one <cmd> string.
+-- Lives outside keymaps.lua for the same reason a plugin's maps do: the
+-- implementation behind the two keys is here, next to the bindings it backs.
 --
 -- ── The multiplexer seam ───────────────────────────────────────────────────
--- Nothing multiplexer-shaped is here. Finding the agent's pane, choosing
--- between a pinned target and discovery and a guess, and speaking tmux or
--- herdr to actually deliver — all of it is behind ak/mux.lua, the same module
--- the <C-h/j/k/l> navigation maps go through. Two calls is the whole seam:
+-- Nothing multiplexer-shaped belongs in this file. Finding the agent's pane,
+-- choosing between a pinned target / discovery / a guess, and speaking tmux or
+-- herdr are all behind ak/mux.lua. Two calls is the whole seam:
 --
 --   mux.reachable()          is there a multiplexer to deliver through?
 --   mux.deliver(agent, msg)  -> ok, err
 --
--- It used to be more, and that was the bug: this file held backends[1], read
--- .fallback off an adapter, and called .find/.send itself, so the delivery
--- ladder lived here while every fact it reasoned about lived there. Adding a
--- third multiplexer meant editing both files.
---
--- What is genuinely this module's own: what a message to an agent LOOKS like.
+-- Do NOT reach past them for adapter internals — the delivery ladder then lives
+-- here while the facts it reasons about live there, and a third multiplexer
+-- means editing both files. What IS this module's own: the message format.
 
 local mux = require("ak.mux")
 

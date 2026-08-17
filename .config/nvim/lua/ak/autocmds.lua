@@ -15,12 +15,9 @@ end
 local autocmd = vim.api.nvim_create_autocmd
 
 -- ── Highlight yanked text ──────────────────────────────────────────────────
--- Brief flash over the region you just yanked. This is the only feedback Vim
--- gives that a yank happened at all, and it makes motion-y yanks (y2j, yi{)
--- verifiable at a glance.
---
--- API note: this is `vim.hl.on_yank` in 0.11+. The old `vim.highlight.on_yank`
--- still resolves but is a deprecated alias.
+-- The only feedback Vim gives that a yank happened, which makes motion-y yanks
+-- (y2j, yi{) verifiable at a glance. `vim.hl.on_yank` in 0.11+;
+-- `vim.highlight.on_yank` is a deprecated alias.
 autocmd('TextYankPost', {
   group = augroup('highlight_yank'),
   callback = function()
@@ -51,16 +48,16 @@ autocmd('BufReadPost', {
 })
 
 -- ── Large file guard ───────────────────────────────────────────────────────
--- Rails apps reliably contain at least one file that will bring a treesitter
--- highlighter to its knees: db/schema.rb in a mature app runs to tens of
--- thousands of lines, and checked-in bundles or vendored JS are worse.
+-- A mature Rails app's db/schema.rb runs to tens of thousands of lines, and
+-- checked-in bundles are worse — enough to bring a treesitter highlighter to
+-- its knees.
 --
--- This marks such buffers with a b:ak_big_file flag BEFORE the file is read,
--- and treesitter.lua checks that flag and skips attaching. We also drop the
--- features whose cost scales with file size.
+-- Sets b:ak_big_file BEFORE the file is read, then drops the features whose
+-- cost scales with size. THE FLAG IS A CROSS-MODULE PROTOCOL: treesitter.lua
+-- (skips attaching) and plugins/lint.lua (skips linting) both read it.
 --
--- 1.5MB is a deliberate compromise: high enough that no hand-written source
--- file trips it, low enough to catch generated output.
+-- 1.5MB: high enough that no hand-written source file trips it, low enough to
+-- catch generated output.
 local BIG_FILE_BYTES = 1.5 * 1024 * 1024
 
 autocmd('BufReadPre', {
@@ -156,10 +153,9 @@ autocmd('VimResized', {
 })
 
 -- ── Reload files changed outside Neovim ────────────────────────────────────
--- 'autoread' is already on by default, but it only acts when Neovim happens to
--- check. This triggers that check on focus and buffer entry, so files changed
--- by git checkout, rubocop -a, or prettier --write appear updated rather than
--- stale. Essential when formatters run outside the editor.
+-- 'autoread' is on by default but only acts when Neovim happens to check. This
+-- forces the check on focus and buffer entry, so files rewritten by git
+-- checkout, rubocop -a or prettier --write don't show up stale.
 autocmd({ 'FocusGained', 'TermClose', 'TermLeave', 'BufEnter' }, {
   group = augroup('checktime'),
   callback = function()
@@ -186,13 +182,9 @@ autocmd('FileType', {
   end,
 })
 
--- DELIBERATELY ABSENT: strip-trailing-whitespace on save.
---
--- It is the most commonly copy-pasted autocmd in Neovim configs and it is a
--- bad fit here. conform.nvim will run prettierd on your JS/TS and rubocop on
--- your Ruby, both of which already remove trailing whitespace in the files
--- they own. A blanket stripper only affects the files they DON'T own —
--- Markdown (where two trailing spaces are a hard line break), fixtures,
--- vendored code, .patch files — and it rewrites lines you never touched,
--- turning a two-line diff into a fifty-line one. 'list' is on in options.lua,
--- so you can see the whitespace and remove it deliberately.
+-- DELIBERATELY ABSENT: strip-trailing-whitespace on save. conform already runs
+-- prettierd and rubocop, which strip it in the files they own — so a blanket
+-- stripper only touches the files they DON'T (Markdown, where two trailing
+-- spaces are a hard line break; fixtures; vendored code; .patch files) and
+-- rewrites lines you never edited, turning a two-line diff into a fifty-line
+-- one. 'list' is on in options.lua, so you can see and remove it deliberately.

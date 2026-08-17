@@ -1,39 +1,26 @@
 -- lua/ak/treesitter.lua
 --
--- Treesitter via nvim-treesitter (the 'main' branch rewrite).
+-- Treesitter via nvim-treesitter's 'main' branch rewrite, where the division of
+-- labour is the whole point: the plugin installs PARSERS and QUERIES and
+-- nothing else, and Neovim core provides highlighting, folds and injections
+-- from them.
 --
--- Division of labour, which is the whole point of the rewrite:
---
---   nvim-treesitter  installs PARSERS and QUERIES. That is all it does now.
---   Neovim core      provides highlighting, folds, and injections, driven by
---                    those queries.
---   nvim-treesitter  additionally offers an indentexpr, which it labels
---                    experimental — see the indent note below.
---
--- This is NOT the plugin most configs on the internet describe. There is no
--- `require('nvim-treesitter.configs').setup { highlight = { enable = true } }`
--- and no `ensure_installed`. Those belong to the frozen 'master' branch.
-
--- setup() is only needed to change install_dir; the default
--- (stdpath('data')/site, prepended to runtimepath) is what we want, so we skip
--- it entirely. The docs are explicit: "You do not need to call setup".
+-- NOT the plugin most configs describe — there is no
+-- `require('nvim-treesitter.configs').setup { highlight = ... }` and no
+-- `ensure_installed`. Those belong to the frozen 'master' branch. setup() is
+-- only for changing install_dir, so it is skipped entirely.
 
 -- ── Parsers to install ─────────────────────────────────────────────────────
--- install() is idempotent and asynchronous — a no-op when everything is
--- already present, so running it on every startup costs nothing measurable.
+-- install() is idempotent and async, so running it every startup is free.
 --
--- Note what is NOT here: no eruby, no typescriptreact, no javascriptreact.
--- Those are FILETYPES, not parser languages. The plugin's own
--- plugin/filetypes.lua registers the mappings for us:
+-- No eruby, typescriptreact or javascriptreact here — those are FILETYPES, not
+-- parser languages, and the plugin's plugin/filetypes.lua maps them:
 --
 --   embedded_template <- eruby
 --   tsx               <- typescriptreact, typescript.tsx
 --   javascript        <- javascriptreact, jsx, js, ecma
 --   json              <- jsonc
 --   bash              <- sh
---
--- That registration is why the hand-written language map this file used to
--- carry is gone.
 local ensure = {
   -- JS/TS. `tsx` and `typescript` are separate grammars from one repo; you
   -- need both because .ts and .tsx parse differently.
@@ -97,12 +84,10 @@ vim.api.nvim_create_autocmd('FileType', {
       return
     end
 
-    -- Is the parser actually installed? language.add() returns true when the
-    -- parser loads and nil when it doesn't, WITHOUT raising — so this is a
-    -- return-value check, not a pcall. Keeps a not-yet-installed language a
-    -- silent no-op rather than an error on every buffer you open, which
-    -- matters because install() above is async and won't have finished on the
-    -- very first startup.
+    -- language.add() returns true/nil WITHOUT raising, so this is a return-value
+    -- check rather than a pcall. Keeps a not-yet-installed language a silent
+    -- no-op, which matters because install() above is async and hasn't finished
+    -- on the very first startup.
     if not vim.treesitter.language.add(lang) then
       return
     end
@@ -116,40 +101,23 @@ vim.api.nvim_create_autocmd('FileType', {
     vim.wo[0][0].foldmethod = 'expr'
     vim.wo[0][0].foldexpr = 'v:lua.vim.treesitter.foldexpr()'
 
-    -- ── Indent: still NOT enabled ──
-    -- nvim-treesitter DOES provide one now:
-    --     vim.bo.indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
-    -- and its README labels it "experimental".
-    --
-    -- Leaving it off is a deliberate call, and it's the same one as before the
-    -- switch: your install ships mature Vim indent scripts for precisely the
-    -- filetypes you care about —
-    --     $VIMRUNTIME/indent/typescriptreact.vim
-    --     $VIMRUNTIME/indent/eruby.vim
-    --     $VIMRUNTIME/indent/ruby.vim
-    -- and they handle TSX and ERB more reliably than experimental treesitter
-    -- indent does. They load automatically from FileType, and this file
+    -- ── Indent: deliberately NOT enabled ──
+    -- nvim-treesitter provides an indentexpr but labels it experimental, and
+    -- $VIMRUNTIME ships mature indent scripts for exactly the filetypes that
+    -- matter here (typescriptreact.vim, eruby.vim, ruby.vim) which handle TSX
+    -- and ERB more reliably. They load from FileType on their own — this file
     -- staying silent on 'indentexpr' is what lets them.
     --
-    -- To try it anyway, uncomment below and compare on a deeply nested TSX
-    -- component. It is one line to revert.
+    -- To try it, uncomment and compare on a deeply nested TSX component.
     -- vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
   end,
 })
 
 -- ── Inspection ─────────────────────────────────────────────────────────────
--- When highlighting looks wrong, these separate parser problems from query
--- problems. All built into Neovim; no plugin needed:
+-- When highlighting looks wrong, these separate query problems from parser ones:
 --
---   :Inspect       highlight groups under the cursor
---                  (empty => queries aren't being found)
---   :InspectTree   live syntax tree
---                  (empty or full of ERROR nodes => parser problem)
+--   :Inspect       highlight groups under the cursor (empty => no queries)
+--   :InspectTree   live syntax tree (ERROR nodes => parser problem)
 --   :EditQuery     interactive query playground
---
--- And from the plugin itself:
---
---   :TSInstall {lang}    install a parser not in the list above
---   :TSUpdate            update all parsers (also runs on plugin update)
---   :TSLog               output of the last install/update
---   :checkhealth nvim-treesitter    installed parsers and queries
+--   :TSInstall {lang} / :TSUpdate / :TSLog
+--   :checkhealth nvim-treesitter

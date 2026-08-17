@@ -15,38 +15,30 @@ require('gitsigns').setup({
   -- Signs are left at their defaults (┃ for add/change, ▁/▔ for deletes).
   -- Two non-defaults worth having:
 
-  -- Show signs for lines that are staged but not yet committed, drawn with a
-  -- dimmer variant of the same glyphs. Without this, staging a hunk makes it
-  -- vanish from the gutter and you lose track of what's already staged —
-  -- which matters a lot given the stage/unstage keymaps below.
+  -- Dimmer glyphs for staged-but-uncommitted lines. Without this, staging a
+  -- hunk makes it vanish from the gutter and you lose track of what's staged —
+  -- which matters given the stage/unstage keymaps below.
   signs_staged_enable = true,
 
-  -- Attach to files git isn't tracking yet, so a brand-new file shows as one
-  -- big add rather than nothing at all.
+  -- Untracked files show as one big add rather than nothing at all.
   attach_to_untracked = true,
 
-  -- Inline blame is OFF by default and toggled with <leader>hB. It's virtual
-  -- text at the end of the current line, recomputed as the cursor moves; on
-  -- by default it's a permanent distraction, on demand it's useful.
+  -- Inline blame OFF by default, toggled with <leader>hB: a permanent
+  -- distraction when always on, useful on demand.
   current_line_blame = false,
   current_line_blame_opts = {
-    -- options.lua sets updatetime = 250, which gitsigns would otherwise
-    -- inherit as the blame delay. 500ms means the text doesn't flicker in and
-    -- out while you're moving through a file.
+    -- Explicit so it does NOT inherit updatetime = 250 from options.lua; at
+    -- that delay the blame text flickers as you move through a file.
     delay = 500,
     virt_text_pos = 'eol',
   },
 })
 
 -- ── Keymaps ────────────────────────────────────────────────────────────────
--- Deliberately NOT inside gitsigns' `on_attach` option.
---
--- on_attach would make these buffer-local, appearing only in git-tracked
--- buffers. That sounds tidier than it is: the maps then silently don't exist
--- in a scratch buffer or outside a repo, and `<leader>h` shows up in which-key
--- only sometimes. Global maps that no-op outside a repo are the more
--- predictable trade, and it's what keeps every keymap in this config
--- greppable at module scope like the other plugin files.
+-- Deliberately NOT in gitsigns' `on_attach`: buffer-local maps would silently
+-- not exist in scratch buffers or outside a repo, and `<leader>h` would appear
+-- in which-key only sometimes. Global maps that no-op outside a repo are more
+-- predictable, and keep every keymap greppable at module scope.
 local gs = require('gitsigns')
 
 local function map(mode, lhs, rhs, desc)

@@ -1,28 +1,21 @@
 -- lua/ak/plugins/lint.lua
 --
--- Linters that are NOT already covered by a language server.
---
--- This file is short on purpose. The obvious linters for your stack both
--- already run as LSPs:
+-- Linters NOT already covered by a language server. Short on purpose — the
+-- obvious ones for this stack already run as LSPs:
 --
 --   eslint   -> lsp/eslint.lua (diagnostics + a fixAll code action)
---   rubocop  -> ruby-lsp runs it in-process (linters = {'rubocop'} in
---               lsp/ruby_lsp.lua)
+--   rubocop  -> ruby-lsp runs it in-process (lsp/ruby_lsp.lua)
 --
--- Running either a second time through nvim-lint would produce DUPLICATE
--- diagnostics on every line — the same complaint from two sources, which is
--- why `source = true` in diagnostics.lua wouldn't even help you tell them
--- apart. So nvim-lint is left to cover the gaps instead.
+-- Adding either here gives DUPLICATE diagnostics on every line, and since both
+-- copies name the same tool, `source = true` in diagnostics.lua won't even help
+-- you tell them apart.
 
 local lint = require('lint')
 
 lint.linters_by_ft = {
-  -- ERB templates. ruby-lsp attaches to eruby but does not lint the ERB
-  -- itself, and rubocop can't parse a template. erb_lint catches unclosed
-  -- tags and Rails-specific view issues.
-  --
-  -- Only runs if the gem is present; a missing linter is a silent no-op, so
-  -- this costs nothing on projects that don't use it.
+  -- ruby-lsp attaches to eruby but doesn't lint the ERB itself, and rubocop
+  -- can't parse a template. A missing gem is a silent no-op, so this costs
+  -- nothing on projects without it.
   eruby = { 'erb_lint' },
 
   -- Dockerfiles and shell scripts — neither has an LSP in our enable list.
@@ -38,23 +31,19 @@ lint.linters_by_ft = {
 }
 
 -- ── When to lint ───────────────────────────────────────────────────────────
--- nvim-lint does not hook anything itself; you choose the trigger.
---
--- BufWritePost and InsertLeave, deliberately NOT TextChanged: these linters
--- are external processes, and running one per keystroke means dozens of
--- concurrent spawns. On save and on leaving insert mode is frequent enough to
--- feel live without that.
+-- nvim-lint hooks nothing itself. Deliberately NOT TextChanged: these linters
+-- are external processes, so one per keystroke means dozens of concurrent
+-- spawns. Save and insert-leave feel live enough.
 vim.api.nvim_create_autocmd({ 'BufWritePost', 'InsertLeave', 'BufReadPost' }, {
   group = vim.api.nvim_create_augroup('ak_lint', { clear = true }),
   callback = function()
-    -- Skip the huge generated files flagged in autocmds.lua.
+    -- Flag set by the large-file guard in autocmds.lua.
     if vim.b.ak_big_file then
       return
     end
 
-    -- try_lint() with no argument uses linters_by_ft for the current
-    -- filetype, and does nothing when there's no entry. The pcall guards
-    -- against a linter binary that exists but errors on startup.
+    -- No argument = use linters_by_ft for this filetype, doing nothing when
+    -- there's no entry. pcall guards a linter binary that exists but errors.
     pcall(lint.try_lint)
   end,
 })

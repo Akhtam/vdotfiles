@@ -1,55 +1,44 @@
 -- lua/ak/plugins/init.lua
 --
--- The entire plugin surface of this config, in one table.
---
--- Why one call and one file: vim.pack has no declarative lazy-loading, so
--- splitting add() calls across files buys nothing and costs you the ability to
--- see everything you've installed at a glance.
+-- The entire plugin surface of this config, in one table. vim.pack has no
+-- declarative lazy-loading, so splitting add() calls across files would buy
+-- nothing and cost the at-a-glance view.
 --
 -- ── One entry, one truth ───────────────────────────────────────────────────
--- Every entry declares where its configuration lives, and the requires at the
--- bottom are DERIVED from that — there is no second list to keep in step.
+-- Every entry declares where its configuration lives; the requires at the
+-- bottom are DERIVED from it, so there is no second list to keep in step.
 --
---   config = 'ak.plugins.noice'                  one config module
---   config = { 'ak.plugins.snacks', ... }        several (snacks.nvim)
---   config = false                               deliberately none, reason in a comment
+--   config = 'ak.plugins.noice'             one config module
+--   config = { 'ak.plugins.snacks', ... }   several
+--   config = false                          deliberately none, reason in a comment
 --
--- Leaving `config` off entirely is not a third option: the loader reports it at
--- startup. That is the whole point of the field. Installing a plugin and
--- configuring it used to be two edits in two hand-synced lists, and they had
--- already drifted — four nvim-dap plugins were being cloned, pinned, and put on
--- the runtimepath with nothing configuring them, behind a commented-out require
--- nobody could see from the spec.
+-- Omitting `config` is not a third option — the loader warns at startup. That
+-- is the point of the field: install and configure used to be two hand-synced
+-- lists, and they drifted.
 --
--- Order matters in two places, both because the list is walked top to bottom:
---
---   tokyonight is FIRST, so the colorscheme is applied before anything draws.
---
---   nvim-autopairs comes before blink.cmp. blink binds <A-e> as
---   `{ 'hide', 'fallback' }`, and its fallback is whatever <A-e> already meant
---   — autopairs' fast_wrap. Load blink first and it captures nothing, so
---   <A-e> stops wrapping once the completion menu is closed. See the note in
---   plugins/autopairs.lua.
+-- Order matters in two places, since the list is walked top to bottom:
+--   tokyonight FIRST, so the colorscheme applies before anything draws.
+--   nvim-autopairs before blink.cmp — blink binds <A-e> as { 'hide', 'fallback' }
+--     and the fallback is whatever <A-e> already meant (autopairs' fast_wrap).
+--     Load blink first and <A-e> stops wrapping. See plugins/autopairs.lua.
 --
 -- Managing plugins:
---   :lua vim.pack.update()              fetch + review + confirm with :w
---   :lua vim.pack.update(nil, {offline = true})   browse installed plugins
---   :lua vim.pack.del({ 'name' })       remove from disk after deleting its spec
+--   :lua vim.pack.update()                        fetch + review + confirm with :w
+--   :lua vim.pack.update(nil, {offline = true})   browse installed
+--   :lua vim.pack.del({ 'name' })                 remove from disk
 --
--- Plugins land in ~/.local/share/nvim/site/pack/core/opt/ and revisions are
--- recorded in ~/.config/nvim/nvim-pack-lock.json — which is committed, so a
--- fresh machine installs this exact set at these exact revisions.
+-- Plugins land in ~/.local/share/nvim/site/pack/core/opt/; revisions are
+-- recorded in the committed nvim-pack-lock.json, so a fresh machine installs
+-- this exact set at these exact revisions.
 
 local function gh(repo)
   return 'https://github.com/' .. repo
 end
 
 -- ── Build hooks ────────────────────────────────────────────────────────────
--- Registered BEFORE add(), because add() installs missing plugins immediately
--- and fires PackChanged as it goes. Register after, and the hook misses the
--- very install it exists to handle — `:h vim.pack-events` calls this out
--- explicitly: "If hooks need to run on install, run this before
--- `vim.pack.add()`".
+-- Registered BEFORE add(): add() installs missing plugins immediately and fires
+-- PackChanged as it goes, so registering after would miss the very install this
+-- exists to handle. See `:h vim.pack-events`.
 vim.api.nvim_create_autocmd('PackChanged', {
   group = vim.api.nvim_create_augroup('ak_pack_build', { clear = true }),
   callback = function(ev)
@@ -63,14 +52,10 @@ vim.api.nvim_create_autocmd('PackChanged', {
 
     if name == 'nvim-treesitter' then
       -- Parsers are pinned to revisions in the plugin's manifest, so plugin
-      -- code and parser ABI must move together. Its README: "When upgrading
-      -- the plugin, you must make sure that all installed parsers are updated
-      -- to the latest version via :TSUpdate."
+      -- code and parser ABI must move together — :TSUpdate on every change.
       --
-      -- On a fresh install the plugin's own commands don't exist yet — nothing
-      -- has been sourced. `:h vim.pack-events` covers this: "If action relies
-      -- on code from the plugin (like user command or Lua code), make sure to
-      -- explicitly load it first."
+      -- On a fresh install nothing has been sourced yet, so the plugin's own
+      -- commands don't exist; packadd it first (`:h vim.pack-events`).
       if not ev.data.active then
         vim.cmd.packadd('nvim-treesitter')
       end
@@ -107,15 +92,12 @@ local spec = {
   { src = gh('folke/which-key.nvim'), config = 'ak.plugins.whichkey' },
 
   -- ─ Editing ─
-  -- Indent guides used to be lukas-reineke/indent-blankline.nvim here; now
-  -- provided by snacks.nvim's `indent` module instead (config in
-  -- plugins/snacks.lua) — one less plugin to pin/update, and consistent with
-  -- the other snacks modules already in use (image, notifier, lazygit, ...).
-
-  -- Auto-close brackets and quotes as you type. Deliberately UNPINNED: the
-  -- repo has exactly one tag (0.10.0) and has moved well past it on the
-  -- default branch, so a version range would pin you to stale code. The
-  -- lockfile still records the exact revision.
+  -- Indent guides come from snacks.nvim's `indent` module (plugins/snacks.lua).
+  --
+  -- Auto-close brackets and quotes as you type. Deliberately UNPINNED: the repo
+  -- has exactly one tag (0.10.0) and has moved well past it on the default
+  -- branch, so a version range would pin you to stale code. The lockfile still
+  -- records the exact revision.
   { src = gh('windwp/nvim-autopairs'), config = 'ak.plugins.autopairs' },
 
   -- ─ Sessions ─
@@ -127,70 +109,45 @@ local spec = {
   },
 
   -- ─ Multiplexer integration ─
-  -- The NVIM half of a paired plugin. The tmux half is already installed via
-  -- TPM at ~/.tmux/plugins/vim-tmux-navigator, declared in ~/.dotfiles/.tmux.conf.
-  -- Using the same repo for both halves means they can't drift apart.
+  -- The Neovim half of a paired plugin; the tmux half is installed via TPM and
+  -- declared in ~/.dotfiles/.tmux.conf. Same repo, so the halves can't drift.
   --
-  -- config = false because its configuration isn't per-plugin: lua/ak/mux.lua
-  -- owns the whole multiplexer seam — this plugin under tmux, the herdr CLI
-  -- under herdr, one policy and one set of keymaps over both — and init.lua
-  -- calls its setup() directly.
+  -- config = false because lua/ak/mux.lua owns the whole multiplexer seam — this
+  -- plugin under tmux, the herdr CLI under herdr — and init.lua calls its setup().
   { src = gh('christoomey/vim-tmux-navigator'), config = false },
 
   -- ─ Treesitter ─
-  -- version = 'main' is NOT redundant, and getting it wrong is a real hazard.
-  -- This repo carries two live branches: 'main' is the 0.12-only rewrite, and
-  -- 'master' is FROZEN for Neovim 0.11 back-compat. main happens to be the
-  -- default branch today, but pinning it explicitly means an upstream default
-  -- change can't silently drop you onto the frozen branch.
+  -- version = 'main' is NOT redundant. The repo carries two live branches: main
+  -- is the 0.12-only rewrite, master is FROZEN for 0.11 back-compat. Pinning
+  -- explicitly means an upstream default-branch change can't drop you onto the
+  -- frozen one.
   --
-  -- The rewrite is a different plugin from the one most configs on the
-  -- internet describe: no `highlight = { enable = true }`, no `ensure_installed`.
-  -- It installs parsers + queries and nothing else; enabling features is done
-  -- against core APIs in lua/ak/treesitter.lua.
-  --
-  -- It explicitly does NOT support lazy-loading, which suits vim.pack fine.
-  --
-  -- config = false because lua/ak/treesitter.lua is required from init.lua, not
-  -- from here: it configures core APIs rather than the plugin, and it has to
-  -- run after this whole file has put the plugin on the runtimepath.
+  -- The rewrite is a different plugin from the one most configs describe: no
+  -- `highlight = { enable = true }`, no `ensure_installed`. It installs parsers
+  -- and queries, nothing else; features are enabled against core APIs in
+  -- lua/ak/treesitter.lua, which init.lua requires after this file has extended
+  -- the runtimepath. No lazy-loading support, which suits vim.pack fine.
   { src = gh('nvim-treesitter/nvim-treesitter'), version = 'main', config = false },
 
   -- ─ Shared library ─
-  -- Async/job/path utilities. Not used directly by us; the neotest adapters
-  -- require it, and vim.pack has no dependency resolution — every transitive
-  -- dependency must be listed explicitly. That's a real difference from
-  -- lazy.nvim, and this is the cost.
+  -- Required by the neotest adapters, not by us. vim.pack resolves no
+  -- dependencies, so every transitive one is listed explicitly.
   { src = gh('nvim-lua/plenary.nvim'), config = false }, -- library; nothing to configure
 
   -- ─ Icons ─
-  -- Consumed by the snacks explorer/picker (file/git-status icons) and, per
-  -- its own doc comment, auto-detected by anything that calls
-  -- `MiniIcons.get()` — you already have a Nerd Font 2.3.3 installed, so the
-  -- glyphs resolve. Ghostty falls back to it for the private-use-area
-  -- codepoints even though font-family is the unpatched "JetBrains Mono NL".
-  -- Everything that uses it still works without it, just with generic icons.
+  -- File/git-status icons for the snacks explorer and picker, plus anything
+  -- calling `MiniIcons.get()`. Degrades to generic icons without a Nerd Font.
   { src = gh('nvim-mini/mini.icons'), config = false }, -- setup() lives in plugins/explorer.lua
 
   -- ─ Markdown rendering ─
-  -- Renders markdown in the buffer as you read it — headings, code blocks,
-  -- tables, and checkboxes drawn as virtual text instead of raw syntax, with
-  -- the line under the cursor left as plain text so it stays editable.
+  -- Headings, code blocks, tables and checkboxes drawn as virtual text as you
+  -- read, with the cursor line left raw so it stays editable.
   { src = gh('MeanderingProgrammer/render-markdown.nvim'), config = false }, -- defaults are what we want
 
   -- ─ snacks.nvim ─
-  -- A bundle of ~30 independent modules (dashboard, indent, terminal, etc.),
-  -- each opt-in: per its README, a module only activates if you explicitly
-  -- pass it options in setup(). Seven are configured — `image`, `notifier`
-  -- (noice's toast backend, replacing nvim-notify), `lazygit` (replacing
-  -- kdheepak/lazygit.nvim), `picker` (replacing telescope.nvim +
-  -- telescope-fzf-native), `explorer` (replacing nvim-tree), `indent`, and
-  -- `words` — nothing else in the bundle activates.
-  --
-  -- The one entry with several config modules. snacks.lua is the setup() call;
-  -- the rest are keymaps for individual modules, split out so a binding sits
-  -- next to the thing it drives. snacks.lua must come first — the others call
-  -- into modules it activates.
+  -- ~30 opt-in modules; seven are configured (see plugins/snacks.lua). The one
+  -- entry with several config modules: snacks.lua is the setup() call and MUST
+  -- come first — the rest are keymaps calling into modules it activates.
   {
     src = gh('folke/snacks.nvim'),
     config = {
@@ -204,16 +161,13 @@ local spec = {
   },
 
   -- ─ Completion ─
-  -- PINNED TO 1.x DELIBERATELY. blink.cmp's README currently carries:
-  -- "V2 is under active development with many breaking changes. Consider
-  -- staying on stable by using branch = 'v1' or version = '1.*'". V2 also
-  -- requires a separate blink.lib plugin. Tracking the default branch would
-  -- silently put you on that.
+  -- PINNED TO 1.x DELIBERATELY: blink.cmp's V2 is under active development with
+  -- breaking changes and needs a separate blink.lib plugin. Tracking the default
+  -- branch would silently put you on it.
   --
-  -- NOTE the range string is '1', not '1.0'. vim.version.range('1.0') resolves
-  -- to >=1.0.0 <1.1.0 — it does NOT match v1.10.2. The vim.pack help uses
-  -- '1.0' in its example, which reads like "the 1.x line" and isn't.
-  -- Verified: range('1') -> from=1.0.0 to=2.0.0, matches 1.10.2.
+  -- The range string is '1', NOT '1.0': range('1.0') resolves to >=1.0.0 <1.1.0
+  -- and does not match v1.10.2. The vim.pack help's '1.0' example reads like
+  -- "the 1.x line" and isn't. range('1') -> 1.0.0..2.0.0.
   {
     src = gh('Saghen/blink.cmp'),
     version = vim.version.range('1'),
@@ -223,22 +177,19 @@ local spec = {
   { src = gh('rafamadriz/friendly-snippets'), config = false }, -- data only
 
   -- ─ LSP ─
-  -- Used as a DATA REPOSITORY only. It ships lsp/<server>.lua files that
-  -- vim.lsp.enable() picks up off the runtimepath — default cmd, filetypes,
-  -- and root_markers for hundreds of servers. We never call
-  -- require('lspconfig'), which is deprecated and warns: its README says
-  -- "Calls to require('lspconfig') will show a warning, which will later
-  -- become an error."
+  -- A DATA REPOSITORY only: it ships lsp/<server>.lua files that
+  -- vim.lsp.enable() picks up off the runtimepath (cmd, filetypes, root_markers
+  -- for hundreds of servers). Never call require('lspconfig') — deprecated, and
+  -- the warning is slated to become an error.
   --
-  -- config = false for the same reason as treesitter: our LSP configuration is
-  -- lua/ak/lsp.lua, which drives core vim.lsp APIs and is required from
-  -- init.lua after this file has extended the runtimepath.
+  -- config = false for the same reason as treesitter: our configuration is
+  -- lua/ak/lsp.lua, required from init.lua after the runtimepath is extended.
   { src = gh('neovim/nvim-lspconfig'), config = false },
 
   -- ─ Formatting & linting ─
-  -- Kept separate from LSP on purpose: formatters run on files the language
-  -- server may not own, and keeping them independent means format-on-save
-  -- still works while a server is booting or crashed.
+  -- Separate from LSP on purpose: formatters run on files no language server
+  -- owns, and staying independent means format-on-save still works while a
+  -- server is booting or crashed.
   { src = gh('stevearc/conform.nvim'), config = 'ak.plugins.conform' },
   { src = gh('mfussenegger/nvim-lint'), config = 'ak.plugins.lint' },
 
@@ -261,44 +212,39 @@ local spec = {
   -- typescript, and tsx via the list in lua/ak/treesitter.lua.
 
   -- ─ Debugging ─
-  -- COMMENTED OUT, not gone. These four were installing and loading with
-  -- nothing configuring them — no lua/ak/plugins/dap.lua exists — which is the
-  -- drift the `config` field above is meant to make impossible. Taking them out
-  -- of the spec is the honest fix until that file is written.
+  -- All four name the SAME config module; the loader below dedupes via its
+  -- `loaded` table, so ak.plugins.dap is required once. They belong in one file
+  -- because they are one feature — adapters, UI, inline values and the ruby
+  -- wiring are useless individually and share keymaps.
   --
-  -- Two consequences, because commenting a spec entry is not the same as
-  -- removing a plugin:
+  -- Unpinned: the four move independently of nvim-dap's release tags, and the
+  -- lockfile records each exact revision anyway.
   --
-  --   The four clones are still in ~/.local/share/nvim/site/pack/core/opt/ and
-  --   still pinned in nvim-pack-lock.json. vim.pack does not garbage-collect.
-  --   They are not alone in that: every plugin this config has ever replaced is
-  --   still on disk and in the lockfile. The full orphan list today, none of
-  --   which appears in the spec above —
+  -- Placed after Testing so the files read in dependency order (neotest's
+  -- <leader>td resolves through these adapters). Nothing enforces it — neotest
+  -- only touches dap inside a keymap callback.
+  { src = gh('mfussenegger/nvim-dap'), config = 'ak.plugins.dap' },
+  { src = gh('rcarriga/nvim-dap-ui'), config = 'ak.plugins.dap' },
+  { src = gh('theHamsta/nvim-dap-virtual-text'), config = 'ak.plugins.dap' },
+  -- Wires up rdbg from the `debug` gem. Kept rather than hand-rolled because
+  -- neotest-rspec's dap strategy is written against THIS plugin's private config
+  -- keys (error_on_failure, random_port, current_line, waiting), not plain DAP
+  -- fields.
+  { src = gh('suketa/nvim-dap-ruby'), config = 'ak.plugins.dap' },
   --
-  --     nvim-dap, nvim-dap-ui, nvim-dap-virtual-text, nvim-dap-ruby
-  --     telescope.nvim, telescope-fzf-native.nvim   (-> snacks picker)
-  --     nvim-tree.lua                               (-> snacks explorer)
-  --     nvim-notify                                 (-> snacks notifier)
-  --     lazygit.nvim                                (-> snacks lazygit)
-  --
-  --   `:lua vim.pack.del({ ... })` with those names is what actually removes
-  --   them. Harmless to leave — nothing puts them on the runtimepath — but they
-  --   make the lockfile a poor answer to "what is installed".
-  --
-  --   While commented out they are invisible to the loader, so nothing warns
-  --   about them. Uncommenting brings the startup warning back, which is the
-  --   point: it names ak.plugins.dap until that module exists.
-  -- { src = gh('mfussenegger/nvim-dap'), config = 'ak.plugins.dap' },
-  -- { src = gh('rcarriga/nvim-dap-ui'), config = 'ak.plugins.dap' },
-  -- { src = gh('theHamsta/nvim-dap-virtual-text'), config = 'ak.plugins.dap' },
-  -- { src = gh('suketa/nvim-dap-ruby'), config = 'ak.plugins.dap' }, -- wires up rdbg from the `debug` gem
+  -- ── Orphans on disk ──
+  -- vim.pack does not garbage-collect, so every replaced plugin is still in
+  -- site/pack/core/opt/ and pinned in the lockfile without appearing above:
+  -- telescope.nvim + telescope-fzf-native, nvim-tree.lua, nvim-notify,
+  -- lazygit.nvim, plus the whole pre-vim.pack ~/.local/share/nvim/lazy/ tree.
+  -- `:lua vim.pack.del({ ... })` removes them. Harmless to leave, but they make
+  -- the lockfile a poor answer to "what is installed".
 }
 
 -- ── Install ────────────────────────────────────────────────────────────────
--- vim.pack.add() validates the fields of every spec it is handed, and `config`
--- is ours, not one it knows. So it gets a copy with that key dropped —
--- subtractive rather than an allowlist of the keys to keep, so a vim.pack field
--- this config doesn't use today still passes straight through when you add it.
+-- vim.pack.add() validates every field it is handed and `config` is ours, so it
+-- gets a copy with that key dropped. Subtractive rather than an allowlist, so a
+-- vim.pack field this config doesn't use today still passes through.
 local pack_spec = {}
 for i, entry in ipairs(spec) do
   local copy = {}
@@ -311,15 +257,12 @@ for i, entry in ipairs(spec) do
 end
 
 vim.pack.add(pack_spec, {
-  -- No modal prompt on first install. The confirmation dialog exists to stop a
-  -- config from silently cloning things you didn't ask for — but this list IS
-  -- the request, it's version-controlled, and you're reading it right now.
-  -- On a fresh machine the alternative is a prompt before you can use the
-  -- editor at all.
+  -- No modal prompt on first install: the dialog guards against cloning things
+  -- you didn't ask for, but this version-controlled list IS the request, and on
+  -- a fresh machine the alternative is a prompt before you can use the editor.
   --
-  -- This only affects INSTALL. vim.pack.update() still opens its confirmation
-  -- buffer where you review the changelog and accept with :w — which is where
-  -- review actually matters, since that's when code changes under you.
+  -- INSTALL only. vim.pack.update() still opens its confirmation buffer, which
+  -- is where review actually matters — that's when code changes under you.
   confirm = false,
 })
 

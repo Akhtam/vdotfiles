@@ -9,25 +9,26 @@
 --   neotest-jest    Jest
 --   neotest-vitest  Vitest
 --
--- jest and vitest both claim `*.test.{js,ts,jsx,tsx}` — that looks like a
--- conflict, but each adapter's `root()` walks up looking for ITS OWN config
--- (jest.config.* / a "jest" key in package.json vs. vite.config.* /
--- vitest.config.*) and returns nil when it can't find one. Neotest skips any
--- adapter whose root comes back nil, so on a Vitest project only
--- neotest-vitest activates, and vice versa. Safe to keep both loaded.
+-- jest and vitest both claim `*.test.{js,ts,jsx,tsx}`, which looks like a
+-- conflict but isn't: each adapter's `root()` walks up for ITS OWN config and
+-- returns nil otherwise, and neotest skips any adapter with a nil root. Only
+-- one activates per project, so both can stay loaded.
 --
--- All three need a treesitter PARSER for the language to locate test blocks;
--- ruby, javascript, typescript, and tsx are installed via the list in
--- lua/ak/treesitter.lua.
+-- All three need a treesitter PARSER to locate test blocks — ruby, javascript,
+-- typescript and tsx come from the list in lua/ak/treesitter.lua.
 --
--- NOT wired up: the `strategy = 'dap'` option that would step into a failing
--- test with a debugger. That needs lua/ak/plugins/dap.lua, which doesn't exist
--- — and because it doesn't, the four nvim-dap entries are commented OUT of the
--- spec in plugins/init.lua, so nothing puts them on the runtimepath. The clones
--- are still on disk from when they were active (vim.pack does not
--- garbage-collect — see the orphan list in plugins/init.lua), so this is a
--- wiring gap, not a missing download. Uncomment those entries, write that file,
--- then add `strategy = 'dap'` to the run.run() calls below.
+-- <leader>td runs the nearest test under `strategy = 'dap'`, which resolves
+-- through plugins/dap.lua. Which adapter each lands on is invisible from either
+-- file and mismatches fail quietly:
+--
+--   neotest-jest    type = 'pwa-node' -> js-debug
+--   neotest-vitest  type = 'pwa-node' -> js-debug
+--   neotest-rspec   type = 'ruby'     -> rdbg
+--
+-- That last one is why nvim-dap-ruby isn't hand-rolled: neotest-rspec passes
+-- that plugin's own config keys, which no other ruby adapter understands.
+-- <leader>td therefore exercises both adapter families and is the best single
+-- check that plugins/dap.lua is correct.
 
 require('neotest').setup({
   adapters = {
@@ -63,6 +64,12 @@ end
 map('<leader>tt', function()
   require('neotest').run.run()
 end, 'Run nearest test')
+
+-- Same nearest-test resolution as <leader>tt, but under the debugger. Opt-in
+-- per invocation rather than a mode, so the plain maps stay fast.
+map('<leader>td', function()
+  require('neotest').run.run({ strategy = 'dap' })
+end, 'Debug nearest test')
 
 map('<leader>tf', function()
   require('neotest').run.run(vim.fn.expand('%'))

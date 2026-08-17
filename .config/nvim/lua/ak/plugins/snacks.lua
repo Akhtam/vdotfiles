@@ -1,101 +1,40 @@
 -- lua/ak/plugins/snacks.lua
 --
--- snacks.nvim ships ~30 independent modules, each opt-in: a module only
--- activates if you pass it options here. `image`, `notifier`, `lazygit`,
--- `picker`, `explorer`, `indent`, and `words` are configured; nothing else
--- in the bundle activates.
+-- snacks.nvim ships ~30 independent modules, each opt-in: a module activates
+-- only if you pass it options here. Seven are configured — image, notifier,
+-- lazygit, picker, explorer, indent, words — and nothing else in the bundle
+-- runs. Keymaps live one file per module (picker.lua, explorer.lua, ...);
+-- this file is setup() only.
 --
--- ── image ──────────────────────────────────────────────────────────────────
--- Renders images using the terminal's graphics protocol (kitty protocol —
--- Ghostty supports it) in two places:
---   1. Image files opened directly (png, jpg, gif, pdf, ...) — the whole
---      buffer becomes the image.
---   2. Inline in markdown buffers, at the location of an image link
---      (`![]()`) or `<img>` tag — rendered as you scroll past it.
+-- External binaries, both declared in .config/Brewfile:
+--   image     needs ImageMagick's `magick` to decode images before handing
+--             them to the terminal — without it, images silently don't render
+--   explorer  trash = true (default) sends deletions to the system trash
+--             rather than `rm`, which needs a `trash` CLI on $PATH
 --
--- REQUIRES ImageMagick (the `magick` CLI) to decode/convert source images
--- before handing them to the terminal. Installed, and declared in
--- .config/Brewfile; without it images silently fail to render.
+-- notifier is noice's toast backend: noice tries `{ "snacks", "notify" }` in
+-- order and picks this one automatically once it's enabled, so nothing on the
+-- noice side configures it.
 --
--- ── notifier ───────────────────────────────────────────────────────────────
--- Replaces nvim-notify as noice's toast backend. noice's "notify" view tries
--- backends in order `{ "snacks", "notify" }` (see
--- noice/config/views.lua and noice/view/backend/snacks.lua) and picks snacks
--- automatically once `Snacks.config.notifier.enabled` is true — no change
--- needed on the noice side. See noice.lua for the nvim-notify setup this
--- replaced.
+-- indent:
+--   char = '▏'          U+258F, thinner than │ — matters at the 2-space
+--                       indentation options.lua sets, where guides sit close
+--   scope.enabled = false  Scope highlighting is treesitter-driven, and in ERB
+--                       the tree is three injected languages deep
+--                       (embedded_template + html + ruby). Resolution across
+--                       those injection boundaries is where it draws the
+--                       highlight around the wrong block.
 --
---   style = 'fancy'   closest visual match to nvim-notify's default look.
---   top_down = false  toasts stack upward from the bottom, same as the old
---                     `require('notify').setup({ top_down = false })`.
+-- words auto-highlights references to the symbol under the cursor via
+-- `textDocument/documentHighlight`, debounced on CursorMoved. lsp.lua must NOT
+-- also run document_highlight() — two listeners on the same highlight flicker.
 --
--- ── lazygit ────────────────────────────────────────────────────────────────
--- Replaces kdheepak/lazygit.nvim. Defaults are already the right call:
---   configure = true   auto-generates a lazygit theme matching the active
---                       colorscheme and sets `os.editPreset = "nvim-remote"`,
---                       which is a mode built into lazygit itself — unlike
---                       the old plugin's `lazygit_use_neovim_remote`, it does
---                       NOT need the external `nvr` (neovim-remote) tool.
--- Keymaps live in lua/ak/plugins/lazygit.lua.
---
--- ── picker ─────────────────────────────────────────────────────────────────
--- Replaces telescope.nvim + telescope-fzf-native. Ported from telescope.lua,
--- same theme, same ignore list, same shared split/nav/preview-scroll keys —
--- see that file's git history for the original. Keymaps live in
--- lua/ak/plugins/picker.lua. Like `lazygit`, no `enabled` flag: every picker
--- (files, grep, buffers, ...) is called on demand as `Snacks.picker.<name>()`.
---
--- No fzf-native equivalent needed: the matcher here is snacks' own Lua
--- implementation, not a pluggable sorter, so there's no separate C extension
--- to build (and no PackChanged hook for it, unlike telescope's).
---
--- ── explorer ───────────────────────────────────────────────────────────────
--- Replaces nvim-tree — "a file explorer (picker in disguise)" per its own
--- doc comment, so most of it is configured as a `picker` SOURCE below
--- (`sources.explorer`), not here. This top-level `explorer = {}` is the
--- module's own general settings, separate from the picker source config:
---   replace_netrw = true (default)   disables netrw itself, so no more
---                                     hand-set `vim.g.loaded_netrw` flags
---   trash = true (default)           deletions go to the system trash, not
---                                     `rm` — needs a `trash` CLI on $PATH
--- Both already default true; declared for visibility, same as `lazygit = {}`
--- above. Keymap lives in lua/ak/plugins/explorer.lua.
---
--- ── indent ─────────────────────────────────────────────────────────────────
--- Replaces lukas-reineke/indent-blankline.nvim. Same two settings ported
--- 1:1, everything else left at snacks' defaults:
---
---   indent.char = '▏'    U+258F LEFT ONE EIGHTH BLOCK, same thinner-than-│
---                        guide ibl was using — matters at 2-space indentation
---                        (Ruby, TS, JSX in options.lua) where guides sit close
---                        together.
---   scope.enabled = false   ibl had this off too. Scope highlighting is
---                        treesitter-driven, and in ERB the tree is three
---                        injected languages deep (embedded_template + html +
---                        ruby) — scope resolution across those injection
---                        boundaries is exactly where it gets confused and
---                        draws the highlight around the wrong block. Off
---                        avoids that entirely, same reasoning as before.
---
--- No keymap file: like `image`/`notifier`, this module has no user-facing
--- commands, just per-window rendering — config here is the whole story.
---
--- ── words ──────────────────────────────────────────────────────────────────
--- Auto-highlights every reference to the symbol under the cursor and lets you
--- jump between them, on top of `textDocument/documentHighlight` — same LSP
--- request lsp.lua's old CursorHold-triggered `document_highlight()` used, but
--- driven by CursorMoved with its own 200ms debounce instead of 'updatetime',
--- plus the `]]`/`[[` jump that hand-rolled version never had. Replaces that
--- block entirely (see lsp.lua) rather than running alongside it — two
--- listeners fighting over the same highlight would just flicker. Defaults
--- otherwise; keymaps live in lua/ak/plugins/words.lua.
---
--- Ignore list, ported from telescope's `file_ignore_patterns`. Glob syntax
--- here (passed to fd's `-E` / rg's `-g !...`) rather than Lua patterns.
--- telescope's `file_ignore_patterns` lived in `defaults` and so applied to
--- every picker; snacks' `exclude` is per-source, hence listing it under both
--- `files` and `grep` below. `.git` needs no entry — fd/rg exclude it
--- unconditionally already.
+-- explorer is "a picker in disguise", so most of its configuration is the
+-- `sources.explorer` block below, not the top-level `explorer = {}`.
+
+-- Glob syntax (fd `-E` / rg `-g !...`), not Lua patterns. snacks' `exclude` is
+-- per-source, hence repeating it under both `files` and `grep`. `.git` needs
+-- no entry — fd and rg exclude it unconditionally.
 local picker_exclude = {
   'node_modules',
   'vendor/bundle',
@@ -105,13 +44,9 @@ local picker_exclude = {
   '*.lock',
 }
 
--- The explorer's own exclude list, ported from nvim-tree's `filters.custom`
--- (.DS_Store) + `filters.exclude` (.env.local/.env.development) — narrower
--- than `picker_exclude` above on purpose. nvim-tree's `git.ignore = false`
--- meant everything else gitignored (node_modules included) stayed visible
--- while browsing, even though `picker_exclude` hides it from fuzzy search —
--- browsing "what's in this directory" and "find a file by name" have
--- different noise tolerances, so the two lists stay separate.
+-- Narrower than `picker_exclude` on purpose: browsing "what's in this
+-- directory" and "find a file by name" have different noise tolerances, so
+-- gitignored files (node_modules included) stay visible while browsing.
 local explorer_exclude = {
   '.DS_Store',
   '.env.local',
