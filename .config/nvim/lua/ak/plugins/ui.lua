@@ -26,6 +26,14 @@ require('tokyonight').setup({
     -- boundary between them visible at a glance, which matters when you're
     -- scanning a view for where logic starts and markup ends.
     hl['@punctuation.special.embedded_template'] = { fg = c.orange, bold = true }
+
+    -- snacks' scope bar defaults to linking `Special` — blue1 (#65bcff) here,
+    -- bright enough to compete with the code it's bracketing. The plain indent
+    -- guides link NonText = fg_gutter (#3b4261), so the scope only needs to sit
+    -- one step above that to read as "this block is current". dark3 (#545c7e)
+    -- is the same muted hue, just lifted.
+    -- Brighter: c.dark5, then c.comment. Saturated accent: c.blue0.
+    hl.SnacksIndentScope = { fg = c.dark3 }
   end,
 })
 
