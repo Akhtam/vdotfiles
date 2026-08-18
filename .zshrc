@@ -122,7 +122,8 @@ alias clc="claude"
 alias pn="pnpm"
 alias hra="herdr session attach"
 alias hr='herdr'
-
+alias lg='lazygit'
+alias ld='lazydocker'
 # ── Completion ─────────────────────────────────────────────────────────────
 # fzf's key bindings (CTRL-T, CTRL-R, ALT-C) and fuzzy completion.
 source <(fzf --zsh)
