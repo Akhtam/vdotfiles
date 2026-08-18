@@ -124,13 +124,15 @@ require('snacks').setup({
       -- (normal) windows via `mode = { "i", "n" }`, so the picker behaves
       -- identically regardless of which has focus.
       --
-      -- <C-h> was telescope's `file_split`; snacks' equivalent action is
-      -- `edit_split`. <A-k>/<A-j> move the selection, <A-f>/<A-b> scroll the
-      -- preview — same four Alt keys as before. Left Option only; that's
-      -- settled in ghostty/config, not here.
+      -- Snacks' `edit_split` action opens the selection below the current
+      -- window. Terminals report Ctrl+- as either <C-_> or <C-->.
+      -- <A-k>/<A-j> move the selection, <A-f>/<A-b> scroll the preview — same
+      -- four Alt keys as before. Left Option only; that's settled in
+      -- ghostty/config, not here.
       input = {
         keys = {
-          ['<C-h>'] = { 'edit_split', mode = { 'i', 'n' } },
+          ['<C-_>'] = { 'edit_split', mode = { 'i', 'n' } },
+          ['<C-->'] = { 'edit_split', mode = { 'i', 'n' } },
           ['<A-k>'] = { 'list_up', mode = { 'i', 'n' } },
           ['<A-j>'] = { 'list_down', mode = { 'i', 'n' } },
           ['<A-f>'] = { 'preview_scroll_down', mode = { 'i', 'n' } },
@@ -139,7 +141,8 @@ require('snacks').setup({
       },
       list = {
         keys = {
-          ['<C-h>'] = 'edit_split',
+          ['<C-_>'] = 'edit_split',
+          ['<C-->'] = 'edit_split',
           ['<A-k>'] = 'list_up',
           ['<A-j>'] = 'list_down',
           ['<A-f>'] = 'preview_scroll_down',
