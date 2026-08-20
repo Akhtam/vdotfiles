@@ -176,6 +176,12 @@ command = "$HOME/.dotfiles/.config/herdr/herdr-nav.sh right"
 # directory = "~/.herdr/worktrees"
 
 [ui]
+tab_bar_right = [
+  { type = "zoom" },
+  { type = "datetime", format = "%a %H:%M" },
+  { type = "command", command = "$HOME/.dotfiles/.config/herdr/herdr-battery.sh", interval_seconds = 60, timeout_seconds = 2 },
+]
+tab_bar_right_separator = " ✧ "
 # Sidebar width (auto-scaled based on workspace names, this sets the default)
 # sidebar_width = 26
 
