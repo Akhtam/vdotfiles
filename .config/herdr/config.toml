@@ -176,6 +176,7 @@ command = "$HOME/.dotfiles/.config/herdr/herdr-nav.sh right"
 # directory = "~/.herdr/worktrees"
 
 [ui]
+accent = "#5883BF"
 tab_bar_right = [
   { type = "zoom" },
   { type = "datetime", format = "%a %H:%M" },
