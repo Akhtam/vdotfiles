@@ -3,5 +3,13 @@
   "permission": {
     "edit": "ask",
     "bash": "ask"
+  },
+  "agent": {
+    "plan": {
+      "permission": {
+        "edit": "allow",
+        "bash": "allow"
+      }
+    }
   }
 }

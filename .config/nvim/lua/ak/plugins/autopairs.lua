@@ -71,6 +71,13 @@ npairs.setup({
   },
 })
 
+-- ── endwise: Ruby ────────────────────────────────────────────────────────
+-- <CR> after `def foo`, `class Foo`, `if x`, `do`, etc. auto-inserts `end`.
+-- Ships in nvim-autopairs itself (lua/nvim-autopairs/rules/endwise-ruby.lua),
+-- built on the same check_ts/treesitter machinery as the pairing rules above —
+-- no separate plugin (vim-endwise, nvim-treesitter-endwise) needed.
+npairs.add_rules(require('nvim-autopairs.rules.endwise-ruby'))
+
 -- ── Deliberately NOT wired: completion integration ─────────────────────────
 -- The classic `cmp_autopairs.on_confirm_done()` snippet exists to make nvim-cmp
 -- add brackets on accepting a function. blink.cmp does that itself via

@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/jesseduffield/lazygit/master/schema/config.json
+
+gui:
+  nerdFontsVersion: "3"
+  theme:
+    activeBorderColor:
+      - "#ff966c"
+      - bold
+    inactiveBorderColor:
+      - "#589ed7"
+    searchingActiveBorderColor:
+      - "#ff966c"
+      - bold
+    optionsTextColor:
+      - "#82aaff"
+    selectedLineBgColor:
+      - "#2d3f76"
+    cherryPickedCommitFgColor:
+      - "#82aaff"
+    cherryPickedCommitBgColor:
+      - "#c099ff"
+    markedBaseCommitFgColor:
+      - "#82aaff"
+    markedBaseCommitBgColor:
+      - "#ffc777"
+    unstagedChangesColor:
+      - "#c53b53"
+    defaultFgColor:
+      - "#c8d3f5"
+
+git:
+  diffRenderers:
+    - type: stdinFilter
+      name: delta
+      colorArg: always
+      command: >-
+        delta --dark --paging=never --line-numbers --hyperlinks
+        --syntax-theme="tokyonight_night"
+        --minus-style='syntax "#4b2a3d"'
+        --minus-non-emph-style='syntax "#4b2a3d"'
+        --minus-emph-style='syntax "#6b2e43"'
+        --minus-empty-line-marker-style='syntax "#4b2a3d"'
+        --line-numbers-minus-style="#e26a75"
+        --line-numbers-left-format='{nm:^4} '
+        --plus-style='syntax "#2a4556"'
+        --plus-non-emph-style='syntax "#2a4556"'
+        --plus-emph-style='syntax "#305f6f"'
+        --plus-empty-line-marker-style='syntax "#2a4556"'
+        --line-numbers-plus-style="#c8d3f5"
+        --line-numbers-zero-style="#3b4261"

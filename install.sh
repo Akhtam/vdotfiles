@@ -48,6 +48,7 @@ LINKS='
 .config/lsd/config.yaml                           .config/lsd/config.yaml
 .config/ghostty/config                            .config/ghostty/config
 .config/bat/themes/tokyonight_night.tmTheme       .config/bat/themes/tokyonight_night.tmTheme
+.config/lazygit/config.yml                        Library/Application Support/lazygit/config.yml
 .config/herdr/config.toml                         .config/herdr/config.toml
 .config/opencode/opencode.json                    .config/opencode/opencode.json
 .claude/statusline-command.sh                     .claude/statusline-command.sh

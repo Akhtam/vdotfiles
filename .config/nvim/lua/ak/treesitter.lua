@@ -94,6 +94,28 @@ vim.api.nvim_create_autocmd('FileType', {
 
     vim.treesitter.start(ev.buf, lang)
 
+    -- ── Legacy syntax for Ruby ──
+    -- start() above turns regex syntax OFF (`:h vim.treesitter.start` says so,
+    -- and names this exact line as the escape hatch). indent/ruby.vim answers
+    -- "am I inside a string?" with
+    --   index(map(groups, 'hlID("ruby".v:val)'), synID(...)) >= 0
+    -- and with syntax off every hlID() AND synID() is 0 — so that test is TRUE
+    -- for every character in the file. GetRubyIndent() concludes the whole
+    -- buffer is one string, skips all its keyword logic, and returns 0 for
+    -- every line. 'indentexpr' outranks 'autoindent', so <CR> landed in
+    -- column 0 instead of inside the method.
+    --
+    -- 'ON' (capital) loads the syntax file without resetting highlight groups.
+    -- Treesitter still draws the colours; this only feeds synID().
+    --
+    -- Ruby-only on purpose: the typescript, lua, sh and html indent scripts
+    -- match syntax NAMES against a regex, where a 0 id fails the test instead
+    -- of matching it. eruby is here because indent/eruby.vim delegates to
+    -- GetRubyIndent() for multi-line <% %> regions.
+    if filetype == 'ruby' or filetype == 'eruby' then
+      vim.bo[ev.buf].syntax = 'ON'
+    end
+
     -- ── Folds ──
     -- vim.wo[0][0] is window-local-to-buffer scoping. Plain vim.wo would leak
     -- this foldexpr onto the next buffer opened in the same window, including
@@ -106,7 +128,8 @@ vim.api.nvim_create_autocmd('FileType', {
     -- $VIMRUNTIME ships mature indent scripts for exactly the filetypes that
     -- matter here (typescriptreact.vim, eruby.vim, ruby.vim) which handle TSX
     -- and ERB more reliably. They load from FileType on their own — this file
-    -- staying silent on 'indentexpr' is what lets them.
+    -- staying silent on 'indentexpr' is what lets them. Ruby needs one extra
+    -- thing to actually work: the syntax = 'ON' block above.
     --
     -- To try it, uncomment and compare on a deeply nested TSX component.
     -- vim.bo[ev.buf].indentexpr = "v:lua.require'nvim-treesitter'.indentexpr()"
