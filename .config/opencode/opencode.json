@@ -7,8 +7,10 @@
   "agent": {
     "plan": {
       "permission": {
-        "edit": "allow",
-        "bash": "allow"
+        "bash": "allow",
+        "read": "allow",
+        "external_directory": "allow",
+        "doom_loop": "allow"
       }
     }
   }

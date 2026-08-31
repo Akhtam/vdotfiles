@@ -132,3 +132,6 @@ source <(fzf --zsh)
 fpath=($HOME/.docker/completions $fpath)
 autoload -Uz compinit
 compinit
+
+# Inline suggestions from command history.
+source /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh
