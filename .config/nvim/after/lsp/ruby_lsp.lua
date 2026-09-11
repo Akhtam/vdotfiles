@@ -1,4 +1,4 @@
--- lsp/ruby_lsp.lua — Ruby / Rails
+-- after/lsp/ruby_lsp.lua — local Ruby / Rails overrides
 --
 -- Merges with nvim-lspconfig's lsp/ruby_lsp.lua, which supplies:
 --

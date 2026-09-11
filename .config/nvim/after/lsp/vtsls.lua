@@ -1,4 +1,4 @@
--- lsp/vtsls.lua — TypeScript / JavaScript / React
+-- after/lsp/vtsls.lua — local TypeScript / JavaScript / React overrides
 --
 -- MERGES with nvim-lspconfig's lsp/vtsls.lua rather than replacing it
 -- (`:h lsp-config-merge`), so we inherit for free:

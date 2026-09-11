@@ -79,18 +79,6 @@ end, 'Reset hunk')
 map('n', '<leader>hS', gs.stage_buffer, 'Stage buffer')
 map('n', '<leader>hR', gs.reset_buffer, 'Reset buffer')
 
--- Undo a stage. Also @deprecated upstream, and unlike nav_hunk it has no
--- drop-in replacement — so it stays, with the caveat spelled out:
--- undo_stage_hunk only knows about stage_hunk() calls made in THIS session,
--- and prints "No hunks to undo" for anything staged before nvim started or
--- from another terminal.
---
--- The replacement upstream intends is <leader>hs itself: with
--- signs_staged_enable on, pressing stage_hunk while the cursor is on a STAGED
--- sign unstages it. That path works on anything, session or not, so prefer it
--- and keep this for the muscle memory.
-map('n', '<leader>hu', gs.undo_stage_hunk, 'Undo stage hunk')
-
 map('n', '<leader>hp', gs.preview_hunk, 'Preview hunk')
 
 -- full = true shows the whole commit message and body in the popup, not just

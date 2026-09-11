@@ -21,18 +21,6 @@ local diff_source = function()
   end
 end
 
--- CHANGED: your version called vim.fn['copilot#Enabled']() directly. Copilot
--- isn't installed here, and calling a Vimscript function that doesn't exist
--- raises E117 — which, inside a statusline component, redraws several times a
--- second. The exists() guard makes the component render nothing until you
--- install copilot, and light up automatically if you ever do.
-local copilot_status = function()
-  if vim.fn.exists('*copilot#Enabled') == 0 then
-    return ''
-  end
-  return vim.fn['copilot#Enabled']() == 1 and ' ' or ' '
-end
-
 -- noice components are guarded the same way. noice IS installed, but if its
 -- setup ever fails this keeps the statusline rendering instead of erroring on
 -- every redraw. `pcall` at module scope rather than in the component, so the
@@ -64,8 +52,11 @@ local lualine_x = {
   { 'fileformat' },
   { 'filetype' },
 }
-for _, c in ipairs({ noice_component('mode', '#ff9e64'), noice_component('search', '#ff9e64') }) do
-  table.insert(lualine_x, c)
+for _, kind in ipairs({ 'mode', 'search' }) do
+  local component = noice_component(kind, '#ff9e64')
+  if component then
+    table.insert(lualine_x, component)
+  end
 end
 
 lualine.setup({
@@ -106,15 +97,7 @@ lualine.setup({
     lualine_b = { { 'filename', path = 1 } },
     lualine_c = { { 'diff', source = diff_source } },
     lualine_x = lualine_x,
-    lualine_z = {
-      {
-        copilot_status,
-        -- CHANGED: yours was #2E3440, which is a Nord palette colour — dark
-        -- grey. On TokyoNight Moon's background (#222436) it is very nearly
-        -- invisible. Swapped for Moon's own green so the indicator reads.
-        color = { fg = '#c3e88d' },
-      },
-    },
+    lualine_z = {},
   },
 
   inactive_sections = {

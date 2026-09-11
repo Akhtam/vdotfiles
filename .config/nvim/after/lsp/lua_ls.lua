@@ -1,4 +1,4 @@
--- lsp/lua_ls.lua — Lua, for editing this config
+-- after/lsp/lua_ls.lua — local Lua overrides for editing this config
 --
 -- Merges with nvim-lspconfig's lsp/lua_ls.lua for cmd, filetypes, and the root
 -- markers (.luarc.json, stylua.toml, .git).
@@ -15,11 +15,9 @@ return {
       },
 
       workspace = {
-        -- Index Neovim's own runtime so `vim.lsp.document_color.enable(` gives
-        -- real signatures. This is what turns editing this config from
-        -- guesswork into completion — and it would have caught the filter-table
-        -- bug in lsp.lua at type-check time rather than at LspAttach.
-        library = vim.api.nvim_get_runtime_file('', true),
+        -- Index Neovim's runtime for API signatures without indexing every
+        -- installed plugin. Plugin modules still resolve from the workspace.
+        library = { vim.env.VIMRUNTIME },
 
         -- Don't prompt to configure the workspace as a luassert/busted project
         -- every time a new directory is opened.

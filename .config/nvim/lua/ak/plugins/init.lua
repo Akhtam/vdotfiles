@@ -231,14 +231,6 @@ local spec = {
   -- keys (error_on_failure, random_port, current_line, waiting), not plain DAP
   -- fields.
   { src = gh('suketa/nvim-dap-ruby'), config = 'ak.plugins.dap' },
-  --
-  -- ── Orphans on disk ──
-  -- vim.pack does not garbage-collect, so every replaced plugin is still in
-  -- site/pack/core/opt/ and pinned in the lockfile without appearing above:
-  -- telescope.nvim + telescope-fzf-native, nvim-tree.lua, nvim-notify,
-  -- lazygit.nvim, plus the whole pre-vim.pack ~/.local/share/nvim/lazy/ tree.
-  -- `:lua vim.pack.del({ ... })` removes them. Harmless to leave, but they make
-  -- the lockfile a poor answer to "what is installed".
 }
 
 -- ── Install ────────────────────────────────────────────────────────────────

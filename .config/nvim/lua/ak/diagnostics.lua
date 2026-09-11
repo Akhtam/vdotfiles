@@ -90,7 +90,16 @@ vim.diagnostic.config({
   jump = {
     -- Pop the float on arrival, so ]d doesn't just move the cursor and leave
     -- you to press something else to find out what's wrong.
-    float = true,
+    on_jump = function(diagnostic, bufnr)
+      if diagnostic then
+        vim.diagnostic.open_float({
+          bufnr = bufnr,
+          pos = { diagnostic.lnum, diagnostic.col },
+          scope = 'cursor',
+          focus = false,
+        })
+      end
+    end,
     wrap = true,
   },
 })

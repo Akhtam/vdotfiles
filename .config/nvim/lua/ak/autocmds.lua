@@ -60,8 +60,10 @@ autocmd('BufReadPost', {
 -- catch generated output.
 local BIG_FILE_BYTES = 1.5 * 1024 * 1024
 
+local big_file_group = augroup('big_file')
+
 autocmd('BufReadPre', {
-  group = augroup('big_file'),
+  group = big_file_group,
   callback = function(ev)
     local ok, stats = pcall(vim.uv.fs_stat, vim.api.nvim_buf_get_name(ev.buf))
     if not ok or not stats or stats.size <= BIG_FILE_BYTES then
@@ -74,14 +76,6 @@ autocmd('BufReadPre', {
     vim.bo[ev.buf].undofile = false
     vim.bo[ev.buf].swapfile = false
 
-    -- Window-local: folding re-evaluates its expression constantly.
-    vim.wo.foldmethod = 'manual'
-    vim.wo.wrap = false
-
-    -- Regex syntax highlighting is the other O(file size) offender. Treesitter
-    -- is handled separately, by treesitter.lua reading the flag set above.
-    vim.cmd('syntax clear')
-
     vim.notify(
       ('Large file (%.1f MB): treesitter, syntax, and undo disabled'):format(stats.size / 1024 / 1024),
       vim.log.levels.WARN
@@ -89,16 +83,33 @@ autocmd('BufReadPre', {
   end,
 })
 
+-- Filetype syntax and indent scripts run after BufReadPre, so disable syntax
+-- here rather than clearing it early and allowing it to be re-enabled later.
+autocmd('FileType', {
+  group = big_file_group,
+  callback = function(ev)
+    if not vim.b[ev.buf].ak_big_file then
+      return
+    end
+
+    vim.bo[ev.buf].syntax = ''
+    for _, win in ipairs(vim.fn.win_findbuf(ev.buf)) do
+      vim.wo[win].foldmethod = 'manual'
+      vim.wo[win].wrap = false
+    end
+  end,
+})
+
 -- ── Create missing directories on save ─────────────────────────────────────
 -- `:e src/components/new/Thing.tsx` on a path that doesn't exist yet fails at
 -- write time with E212. This creates the parent directories instead.
 --
--- The `match:find('^%w+://')` check skips URL-ish buffer names (oil://, fugitive://,
--- scp://) where the "directory" is not a filesystem path at all.
+-- Skip non-file buffers and URI schemes (oil://, fugitive://, scp://), where
+-- the "directory" is not a filesystem path at all.
 autocmd('BufWritePre', {
   group = augroup('auto_mkdir'),
   callback = function(ev)
-    if ev.match:find('^%w+://') then
+    if vim.bo[ev.buf].buftype ~= '' or ev.match:find('^[%a][%w+.-]*://') then
       return
     end
     local file = vim.uv.fs_realpath(ev.match) or ev.match

@@ -43,8 +43,12 @@ vim.api.nvim_create_autocmd({ 'BufWritePost', 'InsertLeave', 'BufReadPost' }, {
     end
 
     -- No argument = use linters_by_ft for this filetype, doing nothing when
-    -- there's no entry. pcall guards a linter binary that exists but errors.
-    pcall(lint.try_lint)
+    -- there's no entry. Surface plugin/configuration failures instead of
+    -- silently losing diagnostics.
+    local ok, err = pcall(lint.try_lint)
+    if not ok then
+      vim.notify_once('Linting failed: ' .. tostring(err), vim.log.levels.WARN)
+    end
   end,
 })
 

@@ -61,8 +61,8 @@ end, opts('Help tags'))
 --   `gr` binding for references either: it collides with the built-in
 --   grr/grn/gra/gri family, and typing `grr` would stall for 'timeoutlen'.
 --
---   The explorer is <leader>ee/<leader>ef in explorer.lua, not bare <leader>e,
---   because it needs toggle/reveal logic (opening twice shouldn't stack two).
+--   The explorer is <leader>ef/<leader>et in explorer.lua, not bare <leader>e,
+--   because it needs toggle logic (opening twice shouldn't stack two).
 --
 -- Skipped entirely: `lazy` — Snacks.picker.lazy() reads lazy.nvim's spec
 -- registry, and this config uses vim.pack, so it would just error.

@@ -1,8 +1,8 @@
 -- lua/ak/lsp.lua
 --
 -- Native LSP wiring for Neovim 0.12. No nvim-lspconfig framework: we use
--- vim.lsp.config() / vim.lsp.enable(), and the per-server settings live in
--- ~/.config/nvim/lsp/<name>.lua.
+-- vim.lsp.config() / vim.lsp.enable(), and local server overrides live in
+-- ~/.config/nvim/after/lsp/<name>.lua.
 --
 -- How a server is resolved (`:h lsp-config-merge`), in increasing priority:
 --   1. built-in defaults
@@ -12,9 +12,8 @@
 --   3. every after/lsp/<name>.lua on the runtimepath
 --   4. vim.lsp.config() calls                     <- the '*' block below
 --
--- Our own lsp/<name>.lua files sit at layer 2 alongside nvim-lspconfig's. Since
--- ours are earlier on the runtimepath they win, and we only need to specify the
--- fields we actually want to change — cmd and filetypes come free.
+-- Our overrides live at layer 3 under after/lsp/, so they deterministically win
+-- over nvim-lspconfig while inheriting its cmd, filetypes, and root detection.
 
 -- ── Defaults applied to every server ───────────────────────────────────────
 vim.lsp.config('*', {
@@ -141,10 +140,21 @@ vim.api.nvim_create_autocmd('LspDetach', {
   end,
 })
 
--- ── Commands ───────────────────────────────────────────────────────────────
--- Restart every client attached to the current buffer. The common need is
--- after editing tsconfig.json or a Gemfile, when the server's cached project
--- model is stale.
+-- What is actually attached here, and does it do what I think?
+vim.api.nvim_create_user_command('LspInfo', function()
+  local clients = vim.lsp.get_clients({ bufnr = 0 })
+  if #clients == 0 then
+    print('No LSP clients attached to this buffer')
+    return
+  end
+  for _, c in ipairs(clients) do
+    print(('%s  (id %d)  root: %s'):format(c.name, c.id, c.root_dir or 'n/a'))
+  end
+end, { desc = 'Show LSP clients for this buffer' })
+
+-- Restart every client attached to the current buffer. Stops each client by
+-- id (not by name) so this never touches clients attached to other buffers
+-- or projects, then re-triggers FileType so it re-attaches.
 vim.api.nvim_create_user_command('LspRestart', function()
   local buf = vim.api.nvim_get_current_buf()
   for _, client in ipairs(vim.lsp.get_clients({ bufnr = buf })) do
@@ -157,14 +167,19 @@ vim.api.nvim_create_user_command('LspRestart', function()
   end
 end, { desc = 'Restart LSP clients for this buffer' })
 
--- What is actually attached here, and does it do what I think?
-vim.api.nvim_create_user_command('LspInfo', function()
-  local clients = vim.lsp.get_clients({ bufnr = 0 })
-  if #clients == 0 then
-    print('No LSP clients attached to this buffer')
-    return
+-- ESLint fixes are on by default. A bang changes only the current buffer;
+-- without one the switch applies globally.
+vim.api.nvim_create_user_command('EslintFixToggle', function(args)
+  local scope
+  local disabled
+  if args.bang then
+    vim.b.ak_disable_eslint_fix = not vim.b.ak_disable_eslint_fix
+    disabled = vim.b.ak_disable_eslint_fix
+    scope = 'buffer'
+  else
+    vim.g.ak_disable_eslint_fix = not vim.g.ak_disable_eslint_fix
+    disabled = vim.g.ak_disable_eslint_fix
+    scope = 'global'
   end
-  for _, c in ipairs(clients) do
-    print(('%s  (id %d)  root: %s'):format(c.name, c.id, c.root_dir or 'n/a'))
-  end
-end, { desc = 'Show LSP clients for this buffer' })
+  vim.notify(('ESLint fix on save %s (%s)'):format(disabled and 'OFF' or 'ON', scope))
+end, { bang = true, desc = 'Toggle ESLint fix on save' })

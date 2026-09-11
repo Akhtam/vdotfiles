@@ -63,8 +63,8 @@ require('snacks').setup({
   indent = {
     enabled = true,
     indent = { char = '▏' },
-    scope = { enabled = true, char = '▏'},
-    hl = "SnacksIndent", ---@type string|string[] hl groups for indent guides
+    scope = { enabled = false, char = '▏' },
+    hl = 'SnacksIndent',
   },
   words = { enabled = true },
   -- No `enabled` flag exists for this module — unlike `image`/`notifier` it's
