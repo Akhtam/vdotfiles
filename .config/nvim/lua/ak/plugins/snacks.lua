@@ -80,6 +80,13 @@ require('snacks').setup({
     -- into snacks as a layout preset — no theme module to require.
     layout = { preset = 'ivy' },
 
+    -- snacks defaults every picker to opening with the input focused in
+    -- insert mode. Only <leader>ff and <leader>fl (picker.lua) are typed
+    -- into immediately, so those two override back to `focus = 'input'`;
+    -- everything else (including <leader>gd's git_diff) should land in
+    -- normal mode on the list, ready for j/k/</> without an <Esc> first.
+    focus = 'list',
+
     formatters = {
       file = {
         -- Closest match to telescope's `path_display = { 'smart' }`: keep the
@@ -95,8 +102,8 @@ require('snacks').setup({
       -- Dotfiles repo: exclude-by-default would hide the very files you're
       -- editing right now. Only `files` needs this — grep, buffers, etc.
       -- don't filter on dotfile-ness.
-      files = { hidden = true, exclude = picker_exclude },
-      grep = { exclude = picker_exclude },
+      files = { hidden = true, exclude = picker_exclude, focus = 'input' },
+      grep = { exclude = picker_exclude, focus = 'input' },
 
       -- The explorer, ported from nvim-tree.lua's settings:
       explorer = {
