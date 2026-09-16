@@ -1,11 +1,10 @@
 -- lua/ak/plugins/lualine.lua
 --
--- Your lualine config. Three things could not be carried over verbatim; each is
--- marked CHANGED below with the reason.
+-- Statusline.
 
 local lualine = require('lualine')
 
--- Yours, unchanged. gitsigns publishes b:gitsigns_status_dict per buffer;
+-- gitsigns publishes b:gitsigns_status_dict per buffer;
 -- reading it directly means the diff counts come from the same source as the
 -- gutter signs, rather than lualine shelling out to git a second time.
 -- Returns nil when gitsigns hasn't attached (non-git buffers), which lualine
@@ -40,11 +39,7 @@ end
 
 -- Build lualine_x conditionally, since the noice entries may be absent.
 --
--- CHANGED: your first entry was lazy_status.updates / lazy_status.has_updates,
--- which comes from lazy.nvim. This config uses vim.pack, so that module does
--- not exist and requiring it is a hard error at startup.
---
--- There is no drop-in replacement: vim.pack has no "are updates available"
+-- No plugin-updates component: vim.pack has no "are updates available"
 -- query that works offline — finding out requires a network fetch, which is
 -- what vim.pack.update() does interactively. So the component is dropped
 -- rather than faked. Run :lua vim.pack.update() when you want to check.
@@ -63,7 +58,7 @@ lualine.setup({
   options = {
     theme = 'tokyonight',
 
-    -- Not in your original, but required for correctness here: options.lua
+    -- Required for correctness: options.lua
     -- sets laststatus = 3 (one global statusline). Without globalstatus,
     -- lualine draws per-window and you get a doubled or empty bar.
     globalstatus = true,
@@ -92,8 +87,7 @@ lualine.setup({
   },
 
   sections = {
-    -- Note lualine_a and lualine_y are omitted here exactly as in your config,
-    -- so they keep lualine's defaults: mode in a, progress in y.
+    -- lualine_a and lualine_y are omitted, so they keep lualine's defaults: mode in a, progress in y.
     lualine_b = { { 'filename', path = 1 } },
     lualine_c = { { 'diff', source = diff_source } },
     lualine_x = lualine_x,
@@ -104,7 +98,7 @@ lualine.setup({
     lualine_b = { { 'filename', path = 1 } },
   },
 
-  -- 'nvim-tree' dropped: no lualine extension ships for snacks' explorer, and
+  -- No explorer extension: none ships for snacks' explorer, and
   -- `disabled_filetypes.statusline` above already covers its window.
   extensions = { 'quickfix', 'man' },
 })

@@ -93,9 +93,13 @@ autocmd('FileType', {
     end
 
     vim.bo[ev.buf].syntax = ''
+    -- vim.wo[0][0] scopes to this buffer in the window, so the next file opened
+    -- there doesn't inherit these. See the fold note in treesitter.lua.
     for _, win in ipairs(vim.fn.win_findbuf(ev.buf)) do
-      vim.wo[win].foldmethod = 'manual'
-      vim.wo[win].wrap = false
+      vim.api.nvim_win_call(win, function()
+        vim.wo[0][0].foldmethod = 'manual'
+        vim.wo[0][0].wrap = false
+      end)
     end
   end,
 })
@@ -118,7 +122,8 @@ autocmd('BufWritePre', {
 })
 
 -- ── Close utility buffers with q ───────────────────────────────────────────
--- Help, quickfix, and :checkhealth are read-only scratch windows; requiring
+-- Help, quickfix, and man pages are read-only scratch windows (:checkhealth
+-- maps q itself); requiring
 -- :q for them is friction with no upside. Kept buffer-local so `q` still
 -- starts a macro recording everywhere else.
 autocmd('FileType', {
@@ -127,26 +132,22 @@ autocmd('FileType', {
     'help',
     'qf',
     'man',
-    'checkhealth',
-    'lspinfo',
     'startuptime',
     'query', -- :InspectTree output
   },
   callback = function(ev)
     vim.bo[ev.buf].buflisted = false -- keep them out of :bnext rotation
-    vim.keymap.set('n', 'q', '<cmd>close<CR>', { buffer = ev.buf, silent = true })
+    vim.keymap.set('n', 'q', '<cmd>close<CR>', { buf = ev.buf, silent = true })
   end,
 })
 
 -- ── Terminal buffers ───────────────────────────────────────────────────────
--- Line numbers and a sign column in a terminal misalign its output and serve
--- no purpose. Also start in insert mode so :terminal is immediately typeable.
+-- Start in insert mode so :terminal is immediately typeable. Core's own
+-- TermOpen already turns off number, relativenumber and signcolumn
+-- (`:h default-autocmds`).
 autocmd('TermOpen', {
   group = augroup('terminal'),
   callback = function()
-    vim.opt_local.number = false
-    vim.opt_local.relativenumber = false
-    vim.opt_local.signcolumn = 'no'
     vim.cmd('startinsert')
   end,
 })

@@ -17,18 +17,8 @@
 
 -- ── Defaults applied to every server ───────────────────────────────────────
 vim.lsp.config('*', {
-  -- What this client can do. blink.cmp extends Neovim's baseline with snippet,
-  -- resolve and insert-replace support; without it servers downgrade to
-  -- plain-text completions.
-  --
-  -- Guarded so a broken or absent blink doesn't take LSP down with it.
-  capabilities = (function()
-    local ok, blink = pcall(require, 'blink.cmp')
-    if ok and blink.get_lsp_capabilities then
-      return blink.get_lsp_capabilities()
-    end
-    return nil -- fall back to Neovim's built-in capabilities
-  end)(),
+  -- No `capabilities` here: blink.cmp's plugin/blink-cmp.lua already extends
+  -- vim.lsp.config('*') with its completion capabilities on 0.11+.
 
   -- Fallback project root when a server's own lsp/<name>.lua doesn't specify
   -- markers. Per-server files override this with something more precise
@@ -62,7 +52,7 @@ vim.api.nvim_create_autocmd('LspAttach', {
 
     local buf = ev.buf
     local function map(mode, lhs, rhs, desc)
-      vim.keymap.set(mode, lhs, rhs, { buffer = buf, desc = 'LSP: ' .. desc })
+      vim.keymap.set(mode, lhs, rhs, { buf = buf, desc = 'LSP: ' .. desc })
     end
 
     -- ── Keymaps ──
@@ -96,14 +86,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
     end
 
     -- ── Document colour ──
-    -- Colour swatches beside colour values — with tailwindcss, `bg-slate-800`
-    -- shows its colour. Built into 0.12.
-    if client:supports_method('textDocument/documentColor') then
-      -- Second arg is a FILTER TABLE, not a bufnr. All four vim.lsp.*.enable()
-      -- functions take (enable: boolean, filter: table); a bare number raises
-      -- "filter: expected table, got number".
-      vim.lsp.document_color.enable(true, { bufnr = buf })
-    end
+    -- Nothing to do: 0.12 enables document colours on attach by default
+    -- (`:h lsp-defaults`). Opt out with vim.lsp.document_color.enable(false, …).
 
     -- ── Linked editing ──
     -- Rename a JSX/HTML opening tag and the closing tag follows. Built into
@@ -123,6 +107,44 @@ vim.api.nvim_create_autocmd('LspAttach', {
       vim.lsp.codelens.enable(true, { bufnr = buf })
     end
 
+    -- ── ESLint fix-on-save ──
+    -- Apply eslint's auto-fixable rules on save — import ordering, unused
+    -- imports, fixable hook-dependency rules. Here rather than an on_attach in
+    -- after/lsp/eslint.lua, which would replace lspconfig's own on_attach.
+    --
+    -- A SEPARATE mechanism from conform, which currently registers no
+    -- BufWritePre at all (its format_on_save is commented out). If you turn
+    -- that back on, ORDER MATTERS: BufWritePre autocmds run in registration
+    -- order, and these fixes are code changes, so prettierd must run afterwards
+    -- to re-format the result.
+    if client.name == 'eslint' then
+      vim.api.nvim_create_autocmd('BufWritePre', {
+        group = vim.api.nvim_create_augroup('ak_eslint_fix_' .. buf, { clear = true }),
+        buf = buf,
+        callback = function()
+          if vim.g.ak_disable_eslint_fix or vim.b[buf].ak_disable_eslint_fix then
+            return
+          end
+
+          local response, reason = client:request_sync('workspace/executeCommand', {
+            command = 'eslint.applyAllFixes',
+            arguments = {
+              {
+                uri = vim.uri_from_bufnr(buf),
+                version = vim.lsp.util.buf_versions[buf],
+              },
+            },
+          }, nil, buf)
+
+          if not response then
+            vim.notify_once('ESLint fix-on-save failed: ' .. (reason or 'no response'), vim.log.levels.WARN)
+          elseif response.err then
+            vim.notify_once('ESLint fix-on-save failed: ' .. vim.inspect(response.err), vim.log.levels.WARN)
+          end
+        end,
+      })
+    end
+
     -- Document highlight is deliberately absent: snacks.nvim's `words` module
     -- makes the same documentHighlight request and checks supports_method on
     -- every cursor move, so no per-client wiring belongs here. Adding one back
@@ -130,42 +152,8 @@ vim.api.nvim_create_autocmd('LspAttach', {
   end,
 })
 
--- ── Cleanup on detach ──────────────────────────────────────────────────────
--- Clears reference highlights left by the detaching client; otherwise a stale
--- underline survives :LspRestart with no client left to clear it.
-vim.api.nvim_create_autocmd('LspDetach', {
-  group = vim.api.nvim_create_augroup('ak_lsp_detach', { clear = true }),
-  callback = function()
-    vim.lsp.buf.clear_references()
-  end,
-})
-
--- What is actually attached here, and does it do what I think?
-vim.api.nvim_create_user_command('LspInfo', function()
-  local clients = vim.lsp.get_clients({ bufnr = 0 })
-  if #clients == 0 then
-    print('No LSP clients attached to this buffer')
-    return
-  end
-  for _, c in ipairs(clients) do
-    print(('%s  (id %d)  root: %s'):format(c.name, c.id, c.root_dir or 'n/a'))
-  end
-end, { desc = 'Show LSP clients for this buffer' })
-
--- Restart every client attached to the current buffer. Stops each client by
--- id (not by name) so this never touches clients attached to other buffers
--- or projects, then re-triggers FileType so it re-attaches.
-vim.api.nvim_create_user_command('LspRestart', function()
-  local buf = vim.api.nvim_get_current_buf()
-  for _, client in ipairs(vim.lsp.get_clients({ bufnr = buf })) do
-    local name = client.name
-    client:stop()
-    vim.defer_fn(function()
-      vim.lsp.enable(name)
-      vim.cmd('edit') -- re-trigger FileType so the client re-attaches
-    end, 500)
-  end
-end, { desc = 'Restart LSP clients for this buffer' })
+-- No custom :LspInfo / :LspRestart: 0.12 ships `:lsp restart|stop|enable|disable`
+-- (`:h lsp-commands`), and `:checkhealth vim.lsp` shows what is attached.
 
 -- ESLint fixes are on by default. A bang changes only the current buffer;
 -- without one the switch applies globally.

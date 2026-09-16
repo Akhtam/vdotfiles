@@ -42,10 +42,10 @@ map("n", "<leader>nr", "<cmd>set relativenumber!<CR>", { desc = "Toggle relative
 -- LEFT Option only. Whether Option arrives as Alt is a terminal decision, made
 -- in ghostty/config (`macos-option-as-alt = left`) — right Option still types
 -- é, # and friends.
-map("i", "<A-h>", "<Left>", { noremap = true })
-map("i", "<A-j>", "<Down>", { noremap = true })
-map("i", "<A-k>", "<Up>", { noremap = true })
-map("i", "<A-l>", "<Right>", { noremap = true })
+map("i", "<A-h>", "<Left>")
+map("i", "<A-j>", "<Down>")
+map("i", "<A-k>", "<Up>")
+map("i", "<A-l>", "<Right>")
 
 -- ── Visual mode ────────────────────────────────────────────────────────────
 -- Move selected lines. `:m '>+1<CR>gv=gv` reads as: move past the end mark,

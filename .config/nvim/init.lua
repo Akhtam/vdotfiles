@@ -14,7 +14,7 @@ vim.g.maplocalleader = '\\'
 -- Byte-compilation cache for Lua modules: caches the compiled bytecode of every
 -- required file so subsequent startups skip parsing them.
 --
--- This is an opt-in trade, not a freebie. `:h vim.loader.enable` in 0.12.4 still
+-- This is an opt-in trade, not a freebie. `:h vim.loader.enable` in 0.12.5 still
 -- carries "WARNING: This feature is experimental/unstable", and it is OFF by
 -- default. You get measurably faster startup as this config grows, in exchange
 -- for a feature Neovim reserves the right to change. If you ever see a stale

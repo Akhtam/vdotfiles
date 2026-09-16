@@ -1,6 +1,6 @@
 -- lua/ak/options.lua
 --
--- Editor options — ONLY those differing from Neovim 0.12.4's defaults. Commonly
+-- Editor options — ONLY those differing from Neovim 0.12.5's defaults. Commonly
 -- set but already the default in 0.12, so absent on purpose: hlsearch,
 -- incsearch, autoindent, mouse=nvi, jumpoptions=clean, and termguicolors (auto-
 -- detected, and Ghostty advertises truecolor).

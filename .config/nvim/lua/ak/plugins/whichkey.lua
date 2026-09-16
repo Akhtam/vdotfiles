@@ -11,14 +11,9 @@ require('which-key').setup({
 })
 
 -- ── timeoutlen ─────────────────────────────────────────────────────────────
--- Your config set `vim.o.timeout = true` and `vim.o.timeoutlen = 500` in an
--- `init` block. Both now live in options.lua instead — one source of truth, so
--- there's no question which file wins.
---
--- 'timeout' is already on by default. 'timeoutlen' was 300 in options.lua and
--- is now 500, per your config: which-key's popup only appears once the timeout
--- elapses, so a short value makes it flash open before you've finished typing
--- a two-key sequence you already know.
+-- Set in options.lua (500ms), not here. which-key's popup only appears once
+-- the timeout elapses, so a short value makes it flash open before you've
+-- finished typing a two-key sequence you already know.
 
 -- ── Group labels ───────────────────────────────────────────────────────────
 -- Without these the popup shows bare prefixes; with them it names each group.
@@ -42,7 +37,7 @@ require('which-key').add({
   { '<leader>u', group = 'ui' },
 })
 
--- Yours, verbatim: show only the keymaps local to the current buffer. Useful
+-- Show only the keymaps local to the current buffer. Useful
 -- for seeing what LSP added on attach, which varies by filetype.
 vim.keymap.set('n', '<leader>?', function()
   require('which-key').show({ global = false })

@@ -14,7 +14,7 @@
 --
 -- WHEN IT BREAKS: if a project's .tool-versions names a Ruby with no ruby-lsp
 -- gem, the shim exits non-zero and the client silently fails to attach.
--- :LspInfo shows nothing attached; fix with `asdf install` + `gem install
+-- :checkhealth vim.lsp shows nothing attached; fix with `asdf install` + `gem install
 -- ruby-lsp` for that version.
 
 ---@type vim.lsp.Config

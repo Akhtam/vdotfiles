@@ -10,7 +10,7 @@
 
 local map = vim.keymap.set
 local opts = function(desc)
-  return { noremap = true, silent = true, desc = 'GitHub: ' .. desc }
+  return { silent = true, desc = 'GitHub: ' .. desc }
 end
 
 -- Overrides picker.lua's global `ivy` layout (a bottom-anchored panel) just

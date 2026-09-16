@@ -300,7 +300,8 @@ vim.fn.sign_define('DapStopped', {
 -- volume/mute and never reach the terminal.
 --
 -- Left Option sends Alt (ghostty: macos-option-as-alt = left). h/j/k/l avoided
--- — mux.lua owns <M-h/j/k/l> for pane navigation.
+-- — mux.lua binds <M-h/j/k/l> for pane navigation when its backend relays
+-- chords (herdr).
 -- Mnemonic: (c)ontinue, step (o)ver, step (i)nto, step o(u)t.
 local function map(lhs, rhs, desc, mode)
   vim.keymap.set(mode or 'n', lhs, rhs, { desc = desc })

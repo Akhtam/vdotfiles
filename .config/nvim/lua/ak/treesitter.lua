@@ -116,9 +116,12 @@ local function attach(buf)
   -- vim.wo[0][0] is window-local-to-buffer scoping. Plain vim.wo would leak
   -- this foldexpr onto the next buffer opened in the same window, including
   -- ones with no parser, where it then errors on every redraw.
+  -- [0][0] only addresses the CURRENT window, hence nvim_win_call per window.
   for _, win in ipairs(vim.fn.win_findbuf(buf)) do
-    vim.wo[win].foldmethod = 'expr'
-    vim.wo[win].foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+    vim.api.nvim_win_call(win, function()
+      vim.wo[0][0].foldmethod = 'expr'
+      vim.wo[0][0].foldexpr = 'v:lua.vim.treesitter.foldexpr()'
+    end)
   end
 
   -- ── Indent: deliberately NOT enabled ──

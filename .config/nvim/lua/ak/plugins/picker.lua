@@ -6,7 +6,7 @@
 
 local map = vim.keymap.set
 local opts = function(desc)
-  return { noremap = true, silent = true, desc = 'Picker: ' .. desc }
+  return { silent = true, desc = 'Picker: ' .. desc }
 end
 
 map('n', '<leader>ff', function()

@@ -51,10 +51,8 @@ end
 -- time you open :Gdiff or `nvim -d`. ]h / [h also lines up with the ]d / [d
 -- and ]q / [q pairs already in keymaps.lua.
 --
--- CHANGED from the spec you handed me: gs.next_hunk / gs.prev_hunk are marked
--- @deprecated in the installed revision (31d6fb2) in favour of nav_hunk. They
--- still work — they're one-line wrappers around exactly this call — but they
--- can disappear at any update, so the maps call the current API directly.
+-- nav_hunk rather than gs.next_hunk / gs.prev_hunk, which are @deprecated
+-- wrappers around it.
 map('n', ']h', function()
   gs.nav_hunk('next')
 end, 'Next Hunk')

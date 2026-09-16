@@ -17,18 +17,12 @@ return {
       workspace = {
         -- Index Neovim's runtime for API signatures without indexing every
         -- installed plugin. Plugin modules still resolve from the workspace.
-        library = { vim.env.VIMRUNTIME },
+        -- `${3rd}/luv/library` adds the type annotations for vim.uv.
+        library = { vim.env.VIMRUNTIME, '${3rd}/luv/library' },
 
         -- Don't prompt to configure the workspace as a luassert/busted project
         -- every time a new directory is opened.
         checkThirdParty = false,
-      },
-
-      -- `vim` is injected by Neovim, so lua_ls sees it as an undefined global
-      -- without this. Declaring it here is why we don't need a `---@diagnostic
-      -- disable` comment at the top of every file.
-      diagnostics = {
-        globals = { 'vim' },
       },
 
       -- Telemetry off.

@@ -1,7 +1,6 @@
 -- lua/ak/plugins/bufferline.lua
 --
--- Your config, unchanged. In lazy.nvim you passed `opts`, which lazy forwards
--- to setup() for you; vim.pack has no such mechanism, so the call is explicit.
+-- Tab bar. vim.pack has no `opts` shorthand, so setup() is called explicitly.
 
 require('bufferline').setup({
   options = {

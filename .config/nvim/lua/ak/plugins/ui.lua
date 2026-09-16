@@ -1,9 +1,8 @@
 -- lua/ak/plugins/ui.lua
 --
--- Colorscheme only. The statusline moved to plugins/lualine.lua when your own
--- lualine config came in — they were two unrelated concerns sharing a file.
+-- Colorscheme only; the statusline is plugins/lualine.lua.
 
--- "moon" specifically, to match `theme = TokyoNight Moon` in your Ghostty
+-- "moon" specifically, to match `theme = TokyoNight Moon` in the Ghostty
 -- config. Mismatched terminal and editor themes show up as a colour seam
 -- around the edges of the editor and in :terminal buffers.
 require('tokyonight').setup({

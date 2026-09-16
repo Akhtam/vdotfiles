@@ -16,7 +16,8 @@ noice.setup({
     -- real syntax highlighting from the parsers we installed.
     override = {
       ['vim.lsp.util.convert_input_to_markdown_lines'] = true,
-      ['vim.lsp.util.stylize_markdown'] = true,
+      -- No stylize_markdown override: deprecated in 0.12, and core's hover no
+      -- longer calls it.
 
       -- Do NOT add ['cmp.entry.get_documentation'] here, despite most examples
       -- carrying it: that override requires nvim-cmp, and this config uses
