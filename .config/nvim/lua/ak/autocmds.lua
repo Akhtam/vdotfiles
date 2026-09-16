@@ -104,6 +104,36 @@ autocmd('FileType', {
   end,
 })
 
+-- ── Secret files leave nothing on disk ─────────────────────────────────────
+-- options.lua turns undofile on globally, which writes every edit — including a
+-- token you pasted and then deleted — in plain text under 'undodir'. For files
+-- that hold credentials, keep undo in memory only.
+--
+-- BufReadPre, not BufReadPost: the undo file is read during the load, so the
+-- option must already be off. BufNewFile covers `:e .env` on a file that
+-- doesn't exist yet. Patterns without a slash match the file name's tail.
+--
+-- Swap is already off globally; set here too so flipping that default back on
+-- can't quietly reopen the leak.
+--
+-- NOT covered: yanks. The shada file persists registers ('<50,s10'), so text
+-- yanked out of a secret file still lands in ~/.local/state/nvim/shada.
+autocmd({ 'BufReadPre', 'BufNewFile' }, {
+  group = augroup('secret_files'),
+  pattern = {
+    '.env', '.env.*', '*.env',
+    '*.pem', '*.key', '*.p12', '*.pfx', '*.jks', '*.keystore',
+    'id_rsa*', 'id_ed25519*', 'id_ecdsa*',
+    '.netrc', '.npmrc', '.pgpass', '.pypirc', '.git-credentials',
+    'credentials', 'credentials.*', 'secrets.*', '*.kdbx',
+    'kubeconfig', '*.tfvars', '*.tfstate',
+  },
+  callback = function(ev)
+    vim.bo[ev.buf].undofile = false
+    vim.bo[ev.buf].swapfile = false
+  end,
+})
+
 -- ── Create missing directories on save ─────────────────────────────────────
 -- `:e src/components/new/Thing.tsx` on a path that doesn't exist yet fails at
 -- write time with E212. This creates the parent directories instead.

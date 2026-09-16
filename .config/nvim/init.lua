@@ -47,7 +47,7 @@ require('ak.keymaps')     -- plugin-independent maps only
 -- detection, so nothing downstream depends on when this line runs.
 require('ak.mux').setup()
 
-require('ak.agent')       -- <leader>ac/ao: ask Claude/OpenCode about the selection
+require('ak.agent')       -- <leader>ac: ask Claude about the selection
 require('ak.autocmds')    -- editor behaviour; reads options set above
 
 -- Plugins BEFORE lsp AND before treesitter, and this ordering is load-bearing.

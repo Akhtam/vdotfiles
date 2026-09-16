@@ -1,9 +1,5 @@
-tap "anomalyco/tap"
 tap "docker/tap", trusted: true
-tap "homebrew/bundle"
-tap "homebrew/services"
-tap "jesseduffield/lazydocker"
-tap "mongodb/brew"
+tap "jesseduffield/lazydocker", trusted: true
 # Extendable version manager with support for Ruby, Node.js, Erlang & more
 brew "asdf"
 # Clone of cat(1) with syntax highlighting and Git integration
@@ -22,12 +18,8 @@ brew "git-delta"
 brew "gnupg"
 # Agent multiplexer that lives in your terminal
 brew "herdr"
-# Tools and libraries to manipulate images in select formats
-brew "imagemagick"
 # Simple terminal UI for git commands
 brew "lazygit"
-# Library to render SVG files using Cairo
-brew "librsvg"
 # YAML Parser
 brew "libyaml"
 # Clone of ls with colorful output, file type icons, and more
@@ -36,16 +28,10 @@ brew "lsd"
 brew "lua-language-server"
 # Package manager for the Lua programming language
 brew "luarocks"
-# MongoDB Shell to connect, configure, query, and work with your MongoDB database
-brew "mongosh"
 # Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
 # Fast, disk space efficient package manager
 brew "pnpm"
-# Object-relational database system
-brew "postgresql@18", link: true
-# Persistent key-value database, with built-in net interface
-brew "redis", restart_service: :changed
 # Search tool like grep and The Silver Searcher
 brew "ripgrep"
 # Static analysis and lint tool, for (ba)sh scripts
@@ -62,25 +48,6 @@ brew "tree-sitter-cli"
 brew "wget"
 # Fish-like fast/unobtrusive autosuggestions for zsh
 brew "zsh-autosuggestions"
-# The AI coding agent built for the terminal.
-brew "anomalyco/tap/opencode", trusted: true
 # A simple terminal UI for docker, written in Go
-brew "jesseduffield/lazydocker/lazydocker", trusted: true
+brew "jesseduffield/lazydocker/lazydocker"
 cask "font-jetbrains-mono"
-# Build, run, and govern agents across the software development lifecycle
-cask "docker/tap/sbx", trusted: true
-vscode "bierner.markdown-mermaid"
-vscode "catppuccin.catppuccin-vsc"
-vscode "dbaeumer.vscode-eslint"
-vscode "dsznajder.es7-react-js-snippets"
-vscode "eamodio.gitlens"
-vscode "enkia.tokyo-night"
-vscode "esbenp.prettier-vscode"
-vscode "kaiwood.endwise"
-vscode "koichisasada.vscode-rdbg"
-vscode "ms-vsliveshare.vsliveshare"
-vscode "naumovs.color-highlight"
-vscode "pkief.material-icon-theme"
-vscode "shopify.ruby-extensions-pack"
-vscode "shopify.ruby-lsp"
-vscode "sorbet.sorbet-vscode-extension"

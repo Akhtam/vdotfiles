@@ -30,7 +30,7 @@ local dapui = require('dapui')
 --
 -- Installing that tarball is the only thing mason would have done here, and
 -- every other tool in this config comes from brew, pnpm or asdf on $PATH — one
--- curl is cheaper than a second package manager. Pinned rather than "latest" so
+-- verified download is cheaper than a second package manager. Pinned rather than "latest" so
 -- a fresh machine gets the version this was tested against.
 local JS_DEBUG_VERSION = '1.117.0'
 local js_debug_root = vim.fs.joinpath(vim.fn.stdpath('data'), 'js-debug')
@@ -61,44 +61,86 @@ local function find_dap_server()
   end
 end
 
--- Idempotent and deliberately DESTRUCTIVE: the whole js-debug root goes, not
--- just the target version. A re-run is then a clean reinstall rather than an
--- overlay, and old version directories don't accumulate as you upgrade.
--- Upgrading is: bump JS_DEBUG_VERSION, restart, get told it's missing, run this.
+-- SHA-256 of js-debug-dap-v<JS_DEBUG_VERSION>.tar.gz. Bump it WITH the version:
+-- a mismatch aborts the install, so forgetting fails loudly rather than
+-- installing an unchecked tarball. Microsoft publishes no signature or
+-- attestation for these assets, so a pinned hash is the strongest check there
+-- is. To get the new one, compare two independent sources:
+--
+--   gh api repos/microsoft/vscode-js-debug/releases/tags/v<VERSION> \
+--     --jq '.assets[] | select(.name|endswith(".tar.gz")) | .digest'
+--   curl -fsSL <url> | shasum -a 256
+local JS_DEBUG_SHA256 = 'ad8d04ede9d4b75cc290fd5438a65047a06f786d04f604b6112485b36f090772'
+
+-- Download → verify → extract, each step its own argv so nothing goes through a
+-- shell and nothing from the network is unpacked before it is checked. The
+-- tarball is fetched to a temp file rather than piped into tar: a pipe extracts
+-- as bytes arrive, so a check could only ever run after the damage.
+--
+-- The existing install is removed only once the new tarball has VERIFIED, so a
+-- failed or tampered download leaves a working debugger in place. Removal takes
+-- the whole js-debug root, not just the target version, so a re-run is a clean
+-- reinstall and old version directories don't accumulate. Upgrading is: bump
+-- JS_DEBUG_VERSION and JS_DEBUG_SHA256, restart, get told it's missing, run this.
 --
 -- The tarball has one top-level `js-debug/`, so --strip-components=1 puts
--- src/dapDebugServer.js directly under js_debug. Piped through `sh -c` because
--- vim.system() takes an argv, and there is no pipe without a shell.
+-- src/dapDebugServer.js directly under js_debug.
 vim.api.nvim_create_user_command('DapJsDebugInstall', function()
   local url = ('https://github.com/microsoft/vscode-js-debug/releases/download/v%s/js-debug-dap-v%s.tar.gz'):format(
     JS_DEBUG_VERSION,
     JS_DEBUG_VERSION
   )
-  vim.fn.delete(js_debug_root, 'rf')
-  vim.fn.mkdir(js_debug, 'p')
+  local tarball = vim.fn.tempname() .. '.tar.gz'
+
+  local function fail(msg)
+    vim.schedule(function()
+      os.remove(tarball)
+      vim.notify('js-debug install failed: ' .. msg, vim.log.levels.ERROR)
+    end)
+  end
+
   vim.notify('js-debug: downloading v' .. JS_DEBUG_VERSION .. '…')
 
-  local cmd = ('curl -fsSL %s | tar -xz --strip-components=1 -C %s'):format(
-    vim.fn.shellescape(url),
-    vim.fn.shellescape(js_debug)
-  )
-  vim.system({ 'sh', '-c', cmd }, { text = true }, function(res)
-    vim.schedule(function()
-      if res.code ~= 0 then
-        vim.notify('js-debug install failed:\n' .. (res.stderr or ''), vim.log.levels.ERROR)
-        return
+  -- --proto =https: refuse a redirect to plain http (GitHub redirects to its
+  -- release CDN, which must stay on TLS).
+  vim.system({ 'curl', '-fsSL', '--proto', '=https', '--tlsv1.2', '-o', tarball, url }, { text = true }, function(dl)
+    if dl.code ~= 0 then
+      return fail('download\n' .. (dl.stderr or ''))
+    end
+
+    vim.system({ 'shasum', '-a', '256', tarball }, { text = true }, function(sum)
+      local actual = sum.code == 0 and (sum.stdout or ''):match('^(%x+)') or nil
+      if actual ~= JS_DEBUG_SHA256 then
+        return fail(('checksum mismatch — refusing to extract\n  expected %s\n  got      %s'):format(
+          JS_DEBUG_SHA256,
+          actual or ('shasum error: ' .. (sum.stderr or ''))
+        ))
       end
-      -- Check OUR path specifically, not find_dap_server(): that scans all three
-      -- candidates, so a copy installed elsewhere would report this install as a
-      -- success even when it extracted nothing usable.
-      if vim.uv.fs_stat(vim.fs.joinpath(js_debug, 'src', 'dapDebugServer.js')) then
-        vim.notify('js-debug v' .. JS_DEBUG_VERSION .. ' installed')
-      else
-        vim.notify('js-debug: extracted, but src/dapDebugServer.js is missing — archive layout changed?', vim.log.levels.WARN)
-      end
+
+      vim.schedule(function()
+        vim.fn.delete(js_debug_root, 'rf')
+        vim.fn.mkdir(js_debug, 'p')
+
+        vim.system({ 'tar', '-xzf', tarball, '--strip-components=1', '-C', js_debug }, { text = true }, function(ex)
+          if ex.code ~= 0 then
+            return fail('extract\n' .. (ex.stderr or ''))
+          end
+          vim.schedule(function()
+            os.remove(tarball)
+            -- Check OUR path specifically, not find_dap_server(): that scans all
+            -- three candidates, so a copy installed elsewhere would report this
+            -- install as a success even when it extracted nothing usable.
+            if vim.uv.fs_stat(vim.fs.joinpath(js_debug, 'src', 'dapDebugServer.js')) then
+              vim.notify('js-debug v' .. JS_DEBUG_VERSION .. ' installed (sha256 verified)')
+            else
+              vim.notify('js-debug: extracted, but src/dapDebugServer.js is missing — archive layout changed?', vim.log.levels.WARN)
+            end
+          end)
+        end)
+      end)
     end)
   end)
-end, { desc = 'Download and extract vscode-js-debug' })
+end, { desc = 'Download, verify and extract vscode-js-debug' })
 
 -- ── The pwa-node / pwa-chrome adapter ──────────────────────────────────────
 -- Both types are served by the SAME dapDebugServer.js — it multiplexes

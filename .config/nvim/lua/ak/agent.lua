@@ -2,8 +2,8 @@
 --
 -- Ask a coding agent about the visual selection.
 --
--- <leader>ac / <leader>ao send the selected lines plus a one-line question to an
--- agent CLI (Claude Code, OpenCode) running in another pane. The message is
+-- <leader>ac sends the selected lines plus a one-line question to Claude Code
+-- running in another pane. The message is
 -- formatted as
 --
 --     path/to/file.lua:12-20
@@ -16,11 +16,11 @@
 -- so the agent gets the file/line context along with the code.
 --
 -- Lives outside keymaps.lua for the same reason a plugin's maps do: the
--- implementation behind the two keys is here, next to the bindings it backs.
+-- implementation behind the key is here, next to the bindings it backs.
 --
 -- ── The multiplexer seam ───────────────────────────────────────────────────
 -- Nothing multiplexer-shaped belongs in this file. Finding the agent's pane,
--- choosing between a pinned target / discovery / a guess, and speaking tmux or
+-- checking a pinned target or discovering one, and speaking tmux or
 -- herdr are all behind ak/mux.lua. Two calls is the whole seam:
 --
 --   mux.reachable()          is there a multiplexer to deliver through?
@@ -36,7 +36,7 @@ local M = {}
 
 -- ── The one public function ────────────────────────────────────────────────
 -- Call from visual mode: prompts for a question, then delivers selection +
--- question to `agent` ("Claude", "OpenCode" — matched case-insensitively).
+-- question to `agent` ("Claude" — matched case-insensitively).
 function M.ask(agent)
 	-- Checked BEFORE prompting, not at delivery time: taking your question and
 	-- only then admitting there is nowhere to send it wastes the typing.
@@ -88,9 +88,5 @@ end
 vim.keymap.set("x", "<leader>ac", function()
 	M.ask("Claude")
 end, { desc = "Ask Claude about selection" })
-
-vim.keymap.set("x", "<leader>ao", function()
-	M.ask("OpenCode")
-end, { desc = "Ask OpenCode about selection" })
 
 return M

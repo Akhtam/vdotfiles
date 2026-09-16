@@ -2,7 +2,7 @@
 --
 -- Plugin-independent keymaps only: anything driving a plugin lives in that
 -- plugin's file, so a binding sits next to what it controls. Same rule for maps
--- with a real implementation behind them — <leader>ac / <leader>ao are in
+-- with a real implementation behind them — <leader>ac is in
 -- ak/agent.lua. What's left here is maps whose implementation is one <cmd>.
 --
 -- NOT DEFINED HERE, because Neovim 0.12 ships them as defaults:

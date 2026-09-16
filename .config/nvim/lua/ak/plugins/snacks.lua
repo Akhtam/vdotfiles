@@ -54,7 +54,6 @@ local explorer_exclude = {
 }
 
 require('snacks').setup({
-  image = { enabled = true },
   notifier = {
     enabled = true,
     style = 'fancy',

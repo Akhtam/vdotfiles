@@ -26,8 +26,7 @@
 #   whole directory — the program's config dir is ours end to end (nvim)
 #   single file     — the program also writes state into that directory that
 #                     must NOT be in the repo: herdr's session.json and logs,
-#                     opencode's node_modules and tui.json, bat's compiled
-#                     theme cache. Linking the directory would either drag that
+#                     bat's compiled theme cache. Linking the directory would either drag that
 #                     into git or put the repo where the program writes.
 #
 # When you add a config, add its line here in the same commit. --check will
@@ -51,7 +50,6 @@ LINKS='
 .config/lazygit/config.yml                        Library/Application Support/lazygit/config.yml
 .config/lazydocker/config.yml                     Library/Application Support/jesseduffield/lazydocker/config.yml
 .config/herdr/config.toml                         .config/herdr/config.toml
-.config/opencode/opencode.json                    .config/opencode/opencode.json
 .claude/statusline-command.sh                     .claude/statusline-command.sh
 '
 # Deliberately absent: .claude/settings.local.json. ~/.claude/settings.local.json
