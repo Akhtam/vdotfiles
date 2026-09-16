@@ -4,7 +4,7 @@
 --
 --   cmd           a FUNCTION that spawns `ruby-lsp` with cwd = root_dir
 --   filetypes     { 'ruby', 'eruby' }        <- note: ERB too
---   root_markers  { 'Gemfile', '.git' }
+--   root_markers  { 'Gemfile', '.git' }   <- overridden below
 --   reuse_client  so a monorepo with several Gemfiles gets one client each
 --
 -- The cmd-as-function detail is what makes asdf work: the shim resolves its
@@ -19,6 +19,23 @@
 
 ---@type vim.lsp.Config
 return {
+  -- ── Project root ─────────────────────────────────────────────────────
+  -- lspconfig defaults to { 'Gemfile', '.git' }, and that '.git' is too eager:
+  -- open a Ruby or ERB buffer anywhere inside a git repo that has no Ruby in it
+  -- — THIS repo, for instance — and ruby-lsp roots itself at the repo top and
+  -- writes a composed bundle there: .ruby-lsp/{Gemfile,Gemfile.lock,
+  -- last_updated}. Self-ignoring (its .gitignore is `*`) so it never shows in
+  -- git status, which is exactly why it accumulates unnoticed.
+  --
+  -- Both markers left here are unambiguously Ruby. .tool-versions is
+  -- deliberately NOT one: asdf uses it for every language, so it would re-admit
+  -- the same false positives in any node or go repo that pins a runtime.
+  --
+  -- THE TRADE: a stray .rb outside any Ruby project now gets no client at all.
+  -- Worth it — with no Gemfile there is no bundle to index, so that client was
+  -- only ever giving you syntax-level completion plus a stray directory.
+  root_markers = { 'Gemfile', '.ruby-version' },
+
   init_options = {
     -- ── Formatting ───────────────────────────────────────────────────────
     -- 'auto' inspects the Gemfile and picks rubocop, syntax_tree, or none —

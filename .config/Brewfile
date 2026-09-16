@@ -1,6 +1,8 @@
 tap "anomalyco/tap"
+tap "docker/tap", trusted: true
 tap "homebrew/bundle"
 tap "homebrew/services"
+tap "jesseduffield/lazydocker"
 tap "mongodb/brew"
 # Extendable version manager with support for Ruby, Node.js, Erlang & more
 brew "asdf"
@@ -24,6 +26,8 @@ brew "herdr"
 brew "imagemagick"
 # Simple terminal UI for git commands
 brew "lazygit"
+# Library to render SVG files using Cairo
+brew "librsvg"
 # YAML Parser
 brew "libyaml"
 # Clone of ls with colorful output, file type icons, and more
@@ -56,11 +60,15 @@ brew "tmux"
 brew "tree-sitter-cli"
 # Internet file retriever
 brew "wget"
-# Fish-like inline suggestions for Zsh
+# Fish-like fast/unobtrusive autosuggestions for zsh
 brew "zsh-autosuggestions"
 # The AI coding agent built for the terminal.
 brew "anomalyco/tap/opencode", trusted: true
+# A simple terminal UI for docker, written in Go
+brew "jesseduffield/lazydocker/lazydocker", trusted: true
 cask "font-jetbrains-mono"
+# Build, run, and govern agents across the software development lifecycle
+cask "docker/tap/sbx", trusted: true
 vscode "bierner.markdown-mermaid"
 vscode "catppuccin.catppuccin-vsc"
 vscode "dbaeumer.vscode-eslint"

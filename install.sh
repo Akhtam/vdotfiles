@@ -49,6 +49,7 @@ LINKS='
 .config/ghostty/config                            .config/ghostty/config
 .config/bat/themes/tokyonight_night.tmTheme       .config/bat/themes/tokyonight_night.tmTheme
 .config/lazygit/config.yml                        Library/Application Support/lazygit/config.yml
+.config/lazydocker/config.yml                     Library/Application Support/jesseduffield/lazydocker/config.yml
 .config/herdr/config.toml                         .config/herdr/config.toml
 .config/opencode/opencode.json                    .config/opencode/opencode.json
 .claude/statusline-command.sh                     .claude/statusline-command.sh
@@ -62,13 +63,15 @@ LINKS='
 # Tracked files that are deliberately NOT linked anywhere, so --check stays
 # quiet about them.
 #
-#   herdr-nav.sh   herdr runs it by absolute repo path — see the [[keys.command]]
-#                  blocks in .config/herdr/config.toml. Linking it would give the
-#                  same script two names for no gain.
+#   herdr-nav.sh   herdr runs these by absolute repo path — see the
+#   herdr-battery.sh  [[keys.command]] blocks and the status command in
+#                  .config/herdr/config.toml. Linking them would give the same
+#                  script two names for no gain.
 #   install.sh     this file.
 #   nvim internals covered by the .config/nvim directory link above.
 EXEMPT='
 .config/herdr/herdr-nav.sh
+.config/herdr/herdr-battery.sh
 install.sh
 '
 
