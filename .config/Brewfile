@@ -1,5 +1,3 @@
-tap "docker/tap", trusted: true
-tap "jesseduffield/lazydocker", trusted: true
 # Extendable version manager with support for Ruby, Node.js, Erlang & more
 brew "asdf"
 # Clone of cat(1) with syntax highlighting and Git integration
@@ -49,5 +47,5 @@ brew "wget"
 # Fish-like fast/unobtrusive autosuggestions for zsh
 brew "zsh-autosuggestions"
 # A simple terminal UI for docker, written in Go
-brew "jesseduffield/lazydocker/lazydocker"
+brew "lazydocker"
 cask "font-jetbrains-mono"
